@@ -4,6 +4,7 @@
 #include "../cryptopp/osrng.h"
 #include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include <string>
+#include <iostream>
 #include <fstream>
 
 // This is done for convenience.
@@ -92,18 +93,18 @@ int getch()
 std::string getPassword()
 {
     using namespace std;
-    const char BACKSPACE=127;
-    const char RETURN=10;
+    const char BACKSPACE = 127;
+    const char RETURN = 10;
 
     string password;
-    unsigned char ch=0;
+    unsigned char ch = 0;
 
 
     while((ch=getch())!=RETURN)
     {
         if (ch==BACKSPACE)
         {
-            if(password.length()!=0)
+            if(password.length() != 0)
             {
                 cout << "\b \b";
                 password.resize(password.length()-1);

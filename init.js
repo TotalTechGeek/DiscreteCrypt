@@ -39,6 +39,7 @@ function make_program()
         sys("g++ -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o build/cryptotool -msse2 -fstack-protector -lpthread", function()
         {
             say("Program built")
+            if(detect("upx")) sys("upx build/cryptotool --lzma")
         })
     }
 }
