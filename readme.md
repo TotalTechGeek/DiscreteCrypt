@@ -18,3 +18,5 @@ java -jar Dave.jar
 Which will execute the init script. This will build the code for x86/x86_64 platforms.
 
 The tool will grab the necessary dependencies to build the project (like cryptopp, cppcrypto, and potentially yasm).
+
+This tool is developed to compile with gcc, and Mingw32_64. MSVC support may be added in the future.
