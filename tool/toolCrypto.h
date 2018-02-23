@@ -176,9 +176,9 @@ Integer createContact(Contact& con, const DHParameters& dh, const ScryptParamete
 }
 
 // This code will probably be replaced.
-std::string getCipherName(const CryptoParams& cp)
+std::string getCipherName(CipherType p)
 {
-    switch(cp.cipherType)
+    switch(p)
     {
         CIPHER_ENUM(MAKE_STRING) 
         default: return "";
@@ -186,36 +186,58 @@ std::string getCipherName(const CryptoParams& cp)
 }
 
 // This is somewhat of a factory design pattern.
-void getCipher(const CryptoParams& cp, cppcrypto::block_cipher*& bc)
+void getCipher(CipherType p, cppcrypto::block_cipher*& bc)
 {
     using namespace cppcrypto;
-    switch(cp.cipherType)
+    switch(p)
     {
         CIPHER_ENUM(MAKE_CONS)
         default:
         bc = new aes256;
         break;
     }
-
 }
 
-int getCipherKeySize(const CryptoParams& cp)
+void getHash(HashType h, cppcrypto::crypto_hash*& bc)
+{
+    using namespace cppcrypto;
+    switch(h)
+    {
+        HASH_ENUM(MAKE_CONS)
+        default:
+        bc = new sha256;
+        break;
+    }
+}
+
+int getHashOutputSize(HashType h)
+{
+    int res;
+    using namespace cppcrypto;
+    crypto_hash* bc;
+    getHash(h, bc);
+    res = bc->hashsize();
+    delete bc;
+    return res;
+}
+
+int getCipherKeySize(CipherType p)
 {
     int res;
     using namespace cppcrypto;
     block_cipher* bc;
-    getCipher(cp, bc);
+    getCipher(p, bc);
     res = bc->keysize();
     delete bc;
     return res;
 }
 
-int getCipherBlockSize(const CryptoParams& cp)
+int getCipherBlockSize(CipherType p)
 {
     int res;
     using namespace cppcrypto;
     block_cipher* bc;
-    getCipher(cp, bc);
+    getCipher(p, bc);
     res = bc->blocksize();
     delete bc;
     return res;
@@ -254,47 +276,142 @@ void decodeFile(T& c, const std::string& fileName)
     fi.close();
 }
 
-void decodeExchange(Exchange& ex, const std::string& fileName)
+void decodeEncrypted(Exchange& ex, FileProperties& fp, const std::string& fileName)
 {
     using namespace std;
     ifstream fi(fileName, ios::binary);
     
-    char* in = new char[sizeof(int16_t)];
     if(fi.good())
     {
+        char* in = new char[sizeof(int16_t)];
+
+        // Get the size of the FP
         fi.read(in, sizeof(int16_t));
-        
         int16_t len = *(int16_t*)in;
 
-        delete[] in;
-
-        in = new char[len];
-
-        fi.read(in, len);
+        // Read in the FP
+        char* block = new char[len];
+        fi.read(block, len);
         
         string s;
-        s.append(in, len);
-        
+        s.append(block, len);
+
+        fp.parse(s);
+        delete[] block;
+
+        // Get the size of the ex
+        fi.read(in, sizeof(int16_t));
+        len = *(int16_t*)in;
+
+        // Read in the Exchange
+        block = new char[len];
+        fi.read(block, len);
+        s = "";
+        s.append(block, len);
         ex.parse(s);
+        delete[] block;
+        delete[] in;
+        
     }
 
-    delete[] in;
     fi.close();
 }
 
-void encryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, const unsigned char* key)
+
+std::string hashFile(const std::string& filename, HashType p)
+{
+    using namespace cppcrypto;
+    using namespace std;     
+    std::string res; 
+    unsigned char* hash;
+    crypto_hash* bc;
+    getHash(p, bc);
+    bc->init();
+    ifstream fi(filename, ios::binary);
+    hash = new unsigned char[bc->hashsize() / 8]();
+    int x = bc->blocksize() / 8;
+    if(x == 0) x = bc->hashsize() / 8;
+
+    char* block = new char[x]();
+
+    if(fi.good())
+    {
+        // Gets the file size (hopefully)
+        int fsize = 0;
+        fi.seekg(0, ios::end);
+        fsize = (int)fi.tellg() - fsize;
+        fi.seekg(0, ios::beg);
+
+        while(fsize > x)
+        {
+            fi.read(block, x);
+            bc->update((unsigned char*)block, x);
+            fsize -= x;
+        }
+
+        if(fsize)
+        {
+            fi.read(block, fsize);
+            bc->update((unsigned char*)block, fsize);
+        }
+
+        bc->final(hash);
+    }
+    
+
+    res.append((char*)hash, bc->hashsize() / 8);
+
+    fi.close();
+    delete[] block;
+    delete[] hash;
+    delete bc;
+    return res;
+}
+
+std::string hashPad(std::string hash, int blockSize)
+{
+    if(hash.length() < blockSize)
+    {
+        unsigned char *c = new unsigned char[hash.length() - blockSize];
+        OS_GenerateRandomBlock(true, c, hash.length() - blockSize);
+        hash.append((char*)c, hash.length() - blockSize);
+        delete[] c;
+    }
+
+    return hash;
+}
+
+void encryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, FileProperties& fp, const unsigned char* key)
 {
     using namespace std;
     using namespace cppcrypto;
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
-    string output(ex.out());
+    block_cipher *bc;
+    getCipher(fp.cp.cipherType, bc);
+
+    int blocksize = (int)bc->blocksize() / 8;
+    int keysize = (int)bc->keysize() / 8;
+
+    fp.hash = hashPad(fp.hash, blocksize);
+
+    string output = fp.out();
     int16_t len = (int16_t)output.length();
 
-    // Write the header
+
+    // Write the header (FP)
     fo.write((char*)&len, sizeof(int16_t));
     fo.write(&output[0], len);
+
+    output = ex.out();
+    len = (int16_t)output.length();
+
+
+    // Write the exchange (EX)
+    fo.write((char*)&len, sizeof(int16_t));
+    fo.write(&output[0], len);
+
 
     // Gets the file size (hopefully)
     int fsize = 0;
@@ -302,26 +419,17 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     fsize = (int)fi.tellg() - fsize;
     fi.seekg(0, ios::beg);
 
-    block_cipher *bc;
-    getCipher(ex.cp, bc);
 
-    int blocksize = (int)bc->blocksize() / 8;
-    int keysize = (int)bc->keysize() / 8;
+    // Using the file's hash at the moment.
+    std::string h = fp.hash;
+    while(h.length() > blocksize) h.pop_back();
+    unsigned char* iv = (unsigned char*)&h[0];
 
-    unsigned char* iv = new unsigned char[blocksize];
-    OS_GenerateRandomBlock(true, iv, blocksize);
-
-    // write the iv
-    fo.write((char*)iv, blocksize);
-
-    
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
     ctr c(*bc);
     c.init(key, keysize, iv, blocksize);
-
-    cout << fsize << endl;
 
     if(fi.good() && !fi.bad())
     {
@@ -342,7 +450,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     }
 
     delete bc;
-    delete[] iv;
     delete[] inBuf;
     delete[] outBuf;
     fi.close();
@@ -350,7 +457,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 }
 
 
-void decryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, const unsigned char* key)
+char decryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, const FileProperties& fp, const unsigned char* key)
 {
     using namespace std;
     using namespace cppcrypto;
@@ -364,35 +471,48 @@ void decryptFile(const std::string& fileName, const std::string& outputFile, con
     fi.seekg(0, ios::beg);
 
     char* lenRead = new char[sizeof(int16_t)];
-    fi.read(lenRead, sizeof(int16_t));
-    int16_t len = *(int16_t*)lenRead;
-    delete[] lenRead;
 
     //skip the header
+    fi.read(lenRead, sizeof(int16_t));
+    int16_t len = *(int16_t*)lenRead;
     fi.ignore(len);
 
     fsize -= len;
     fsize -= sizeof(int16_t);
+    
+    // Skip the exchange
+    fi.read(lenRead, sizeof(int16_t));
+    len = *(int16_t*)lenRead;
+    fi.ignore(len);
+
+    fsize -= len;
+    fsize -= sizeof(int16_t);
+    delete[] lenRead;
 
     block_cipher *bc;
-    getCipher(ex.cp, bc);
+    crypto_hash *hc; 
+    getHash(fp.ht, hc);
+    getCipher(fp.cp.cipherType, bc);
+
+
+    unsigned char* hash = new unsigned char[hc->hashsize() / 8];
+    hc->init();
 
     int blocksize = (int)bc->blocksize() / 8;
     int keysize = (int)bc->keysize() / 8;
 
-    unsigned char* iv = new unsigned char[blocksize];
-    
-    // read the iv
-    fi.read((char*)iv, blocksize);
-    fsize -= blocksize;
+    // Using the file's hash at the moment.
+    std::string h = fp.hash;
+    while(h.length() > blocksize) h.pop_back();
+    unsigned char* iv = (unsigned char*)&h[0];
 
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
+
+
     ctr c(*bc);
     c.init(key, keysize, iv, blocksize);
-
-    cout << fsize << endl; 
 
     if(fi.good() && !fi.bad())
     {
@@ -400,6 +520,7 @@ void decryptFile(const std::string& fileName, const std::string& outputFile, con
         {
             fi.read(inBuf, blocksize);
             c.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+            hc->update((unsigned char*)outBuf, blocksize);
             fo.write(outBuf, blocksize);
             fsize -= blocksize;
         }
@@ -408,14 +529,26 @@ void decryptFile(const std::string& fileName, const std::string& outputFile, con
         {
             fi.read(inBuf, fsize);
             c.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+            hc->update((unsigned char*)outBuf, fsize);
             fo.write(outBuf, fsize);
         }
     }
 
+    hc->final(hash);
+    char valid = 1;
+
+    for(int i = 0; i < hc->hashsize() / 8; i++)
+    {
+        valid = valid && hash[i] == (unsigned char)fp.hash[i];
+    }
+
+    delete hc;
     delete bc;
-    delete[] iv;
+    delete[] hash;
     delete[] inBuf;
     delete[] outBuf;
     fi.close();
     fo.close();
+
+    return valid;
 }

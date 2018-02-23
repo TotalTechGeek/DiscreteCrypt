@@ -2,7 +2,9 @@
 #include "../cryptopp/integer.h"
 #include <string>
 
-using namespace CryptoPP;
+using CryptoPP::Integer;
+
+using CryptoPP::OS_GenerateRandomBlock;
 class DHParameters
 {
     private:
@@ -134,13 +136,36 @@ class DHParameters
     DO(Kalyna256_512,   0243,   kalyna256_512) \
     DO(Kalyna512_512,   0244,   kalyna512_512) 
 
+#define DO2(X, Y, Z, DO) \
+    DO(X ## _224, Y ## 0, Z(224)) \
+    DO(X ## _256, Y ## 1, Z(256)) \
+    DO(X ## _384, Y ## 2, Z(384)) \
+    DO(X ## _512, Y ## 3, Z(512)) \
 
+#define DO3(X, Y, Z, DO) \
+    DO2(X, Y, Z, DO) \
+    DO(X ## _1024, Y ## 4, Z(1024)) \
+       
+#define HASH_ENUM(DO) \
+    DO(SHA256,              0000,       sha256) \
+    DO(SHA384,              0001,       sha384) \
+    DO(SHA512,              0002,       sha512) \
+    DO2(SHA3,               001,       sha3, DO) \
+    DO3(SHAKE128,           002,       shake128, DO) \
+    DO3(SHAKE256,           003,       shake256, DO) \
+    DO3(Skein256,           010,       skein256, DO) \
+    DO3(Skein512,           011,       skein512, DO) \
+    DO3(Skein1024,          012,       skein1024, DO) \
+    DO(Whirlpool,           0130,       whirlpool) \
+    DO(Streebog256,         0200,       streebog(256)) \
+    DO(Streebog512,         0201,       streebog(512)) \
+    DO2(Kupyna,             021,       kupyna, DO) \
+        
 #define MAKE_STRING_ARRAY(VAR, VAL, CONS) #VAR,
 #define MAKE_INT_ARRAY(VAR, VAL, CONS) VAL,
 #define MAKE_ENUM(VAR, VAL, CONS) VAR = VAL,
 #define MAKE_STRING(VAR, VAL, CONS) case VAR: return #VAR;
 #define MAKE_CONS(VAR, VAL, CONS) case VAR: bc = new CONS; break;
-
 
 const int16_t AVAILABLE_CIPHERS_CODES[] = {
     CIPHER_ENUM(MAKE_INT_ARRAY)
@@ -150,22 +175,35 @@ const char* const AVAILABLE_CIPHERS[] = {
     CIPHER_ENUM(MAKE_STRING_ARRAY)
 };
 
+const int16_t AVAILABLE_HASHES_CODES[] = {
+    HASH_ENUM(MAKE_INT_ARRAY)
+};
+
+const char* const AVAILABLE_HASHES[] = {
+    HASH_ENUM(MAKE_STRING_ARRAY)
+};
+
 enum CipherType : int16_t
 {
     CIPHER_ENUM(MAKE_ENUM)               
 };
 
-struct CryptoParams
+enum HashType: int16_t
+{
+    HASH_ENUM(MAKE_ENUM)
+};
+
+struct CipherParams
 {
     CipherType cipherType;
     int8_t mode;
 
-    CryptoParams() : cipherType(AES256), mode()
+    CipherParams() : cipherType(AES256), mode()
     {
 
     }
 
-    CryptoParams(const CryptoParams& c) : cipherType(c.cipherType), mode(c.mode)
+    CipherParams(const CipherParams& c) : cipherType(c.cipherType), mode(c.mode)
     {
 
     }
@@ -193,30 +231,6 @@ struct ScryptParameters
     {
 
     }
-
-    // This is a prewritten snippet of code in case compilers
-    // are somehow allowed to reorder members.
-    /*
-    void parse(const std::string& in, int offset = 0)
-    {
-        N =     (int32_t)&in[offset + 0*sizeof(int32_t)];
-        P =     (int32_t)&in[offset + 1*sizeof(int32_t)];
-        R =     (int32_t)&in[offset + 2*sizeof(int32_t)];
-        len =   (int32_t)&in[offset + 3*sizeof(int32_t)];
-    }
-
-    std::string out() const
-    {
-        std::string result;
-
-        result.append((char*)&N, sizeof(int32_t));
-        result.append((char*)&P, sizeof(int32_t));
-        result.append((char*)&R, sizeof(int32_t));
-        result.append((char*)&len, sizeof(int32_t));
-        
-        return result;
-    }*/
-
 };
 
 // This will also be paired with a set of dh params and a scrypt.
@@ -360,23 +374,66 @@ struct Contact
 };
 
 
+// This goes at the beginning of every encrypted file.
+struct FileProperties
+{
+    char version = 1;
+    int16_t recipients = 1;
+    CipherParams cp;
+    HashType ht;
+    std::string hash;
+
+    // simple parsing.
+    void parse(const std::string& in, int offset = 0)
+    {
+        version = in[offset];
+        offset += sizeof(char);
+
+        recipients = *(int16_t*)&in[offset];
+        offset += sizeof(int16_t);
+        
+        cp = *(CipherParams*)&in[offset];
+        offset += sizeof(CipherParams);
+        
+        ht = *(HashType*)&in[offset];
+        offset += sizeof(HashType);
+
+        int16_t len = *(int16_t*)&in[offset];
+        offset += sizeof(int16_t);
+        hash = in.substr(offset, len);
+    }
+    
+    std::string out() const
+    {
+        std::string res; 
+        int16_t len;
+        len = (int16_t)(hash.length());
+        
+        res.append((char*)&version, sizeof(char));
+        res.append((char*)&recipients, sizeof(int16_t));
+        res.append((char*)&cp, sizeof(CipherParams));
+        res.append((char*)&ht, sizeof(HashType));
+        res.append((char*)&len, sizeof(int16_t));
+        res.append(hash);
+
+        return res;
+    }
+};
+
 // This is gonna be a pain lol.
 struct Exchange
 {
     PersonParameters alice, bob;
     ScryptParameters sp;
-    CryptoParams cp;
     DHParameters dh;
 
     Exchange()
     {}
 
-    Exchange(const Exchange& ex) : alice(ex.alice), bob(ex.bob), sp(ex.sp), cp(ex.cp), dh(ex.dh)
-    {
+    Exchange(const Exchange& ex) : alice(ex.alice), bob(ex.bob), sp(ex.sp), dh(ex.dh)
+    {}
 
-    }
-
-    Exchange(const PersonParameters& a, const PersonParameters& b, const ScryptParameters& s, const CryptoParams& cp, const DHParameters& dh) : alice(a), bob(b), sp(s), dh(dh), cp(cp)
+    Exchange(const PersonParameters& a, const PersonParameters& b, const ScryptParameters& s, const CipherParams& cp, const DHParameters& dh) : alice(a), bob(b), sp(s), dh(dh)
     {
 
     }
@@ -392,8 +449,7 @@ struct Exchange
         alice.parse(in, offset);
         bob.parse(in, alice.len() + offset);
         sp = *(ScryptParameters*)&in[offset + alice.len() + bob.len()];
-        cp = *(CryptoParams*)&in[offset + alice.len() + bob.len() + sizeof(ScryptParameters)];
-        dh.parse(in, sizeof(ScryptParameters) + offset + alice.len() + bob.len() + sizeof(CryptoParams));
+        dh.parse(in, sizeof(ScryptParameters) + offset + alice.len() + bob.len());
     }
 
     std::string out() const
@@ -403,7 +459,6 @@ struct Exchange
         result.append(alice.out());
         result.append(bob.out());
         result.append((char*)&sp, sizeof(ScryptParameters));
-        result.append((char*)&cp, sizeof(CryptoParams));
         result.append(dh.out());
 
         return result;

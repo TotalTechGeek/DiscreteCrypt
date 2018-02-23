@@ -34,7 +34,8 @@ using namespace std;
 int main()
 {
     ScryptParameters sp;
-    CryptoParams cp;
+    CipherParams cp;
+    HashType h = HashType::SHA256;
     DHParameters dh("2", "47769438302540021096046443384978134814892753148995001100435849309801466711663622675763277561771586643466880132533087023976743720746114313685955475444589604417407040697888976978390583956623556758141737474347378435226827837774896742010138917035181496312250563068059450412947491330151828692648018138087943927636572818119324452596730516782404332695754162772658498436841083547989339855356853145414644716280526952238204193911949774915160700045679030240088906618979624377203573807795121870524572040515228739829252884815670239587909743396659766160612006380563578633815689354481428440538907836892141942976841851997058146892101157");
     string command;
 
@@ -86,7 +87,7 @@ int main()
             cout << "Cipher Mode: ";
             getline(cin, command);
             cp.cipherType = (CipherType)stoi(command, 0, 8);
-            cout << getCipherName(cp) << endl; 
+            cout << getCipherName(cp.cipherType) << endl; 
         }
         else if(command == "to")
         {
@@ -104,13 +105,19 @@ int main()
             cout << "To Send: ";
             getline(cin, file);
 
+            FileProperties fp;
+            fp.ht = h;
+            fp.hash = hashFile(file, h);
+            fp.cp = cp;
+        
+
             cout << "Out File: ";
             getline(cin, command);
 
             Integer p = a_exp_b_mod_c(recipient.person.publicKey, priv, recipient.dh.mod());
             Exchange ex(recipient.person, sender.person, recipient.sp, cp, recipient.dh);
             
-            encryptFile(file, command, ex, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(ex.cp)).c_str());
+            encryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType)).c_str());
         }
         // allows you to specify the DH Params for creating contacts.
         else if(command == "dh")
@@ -171,11 +178,12 @@ int main()
             cout << "In File: ";
             getline(cin, command);
             Exchange ex;
+            FileProperties fp;
 
-            decodeExchange(ex, command);
+            decodeEncrypted(ex, fp, command);
 
             cout << ex.alice.identity << endl << ex.bob.identity << endl;
-            cout << (int)ex.cp.cipherType << endl << getCipherName(ex.cp) << endl;
+            cout << (int)fp.cp.cipherType << endl << getCipherName(fp.cp.cipherType) << endl;
         }
         // prints out the contact info.
         else if(command == "pc")
@@ -203,7 +211,8 @@ int main()
             getline(cin, command);
             
             Exchange ex;
-            decodeExchange(ex, command);
+            FileProperties fp;
+            decodeEncrypted(ex, fp, command);
             
             dh = ex.dh;
         }
@@ -214,8 +223,9 @@ int main()
             cout << "In File: ";
             getline(cin, command);
             Exchange ex;
+            FileProperties fp;
 
-            decodeExchange(ex, command);
+            decodeEncrypted(ex, fp, command);
             
             cout << "1) " << ex.alice.identity << endl << "2) " << ex.bob.identity << endl;
 
@@ -273,7 +283,8 @@ int main()
             getline(cin, file);
             
             Exchange ex;
-            decodeExchange(ex, file);
+            FileProperties fp;
+            decodeEncrypted(ex, fp, file);
 
             
             cout << "1) " << ex.alice.identity << endl << "2) " << ex.bob.identity << endl;
@@ -300,7 +311,7 @@ int main()
 
             cout << "Out File: ";
             getline(cin, command);
-            decryptFile(file, command, ex, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(ex.cp)).c_str());
+            decryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType)).c_str());
         }
         else
         {
