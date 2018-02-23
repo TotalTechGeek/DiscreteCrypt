@@ -115,7 +115,7 @@ int main()
             Integer p = a_exp_b_mod_c(recipient.person.publicKey, priv, recipient.dh.mod());
             Exchange ex(recipient.person, sender.person, recipient.sp, cp, recipient.dh);
             
-            encryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType)).c_str());
+            encryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp).c_str());
         }
         // allows you to specify the DH Params for creating contacts.
         else if(command == "dh")
@@ -283,8 +283,7 @@ int main()
             Exchange ex;
             FileProperties fp(cp, h);
             decodeEncrypted(ex, fp, file);
-
-            
+             
             cout << "1) " << ex.alice.identity << endl << "2) " << ex.bob.identity << endl;
             getline(cin, command);
 
@@ -309,7 +308,7 @@ int main()
 
             cout << "Out File: ";
             getline(cin, command);
-            cout << (decryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType)).c_str()) ? "Success" : "Fail") << endl;
+            cout << (decryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp).c_str()) ? "Success" : "Fail") << endl;
         }
         else
         {

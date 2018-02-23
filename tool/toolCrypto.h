@@ -122,12 +122,11 @@ std::string getPassword()
 }
 #endif
 
-std::string intToScrypt(const Integer& i, const ScryptParameters& sp, int keyLen)
+std::string intToScrypt(const Integer& i, const ScryptParameters& sp, int keyLen, const FileProperties& fp)
 {
-    static std::string salt = "salt";
     unsigned char* dub1Out = new unsigned char[i.ByteCount()];
     i.Encode(dub1Out, i.ByteCount());
-    return getScrypt((char*)dub1Out, salt, sp.N, sp.P, sp.R, keyLen);
+    return getScrypt((char*)dub1Out, fp.hash, sp.N, sp.P, sp.R, keyLen);
 }
 
 Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp)
