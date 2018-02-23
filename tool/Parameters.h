@@ -382,6 +382,12 @@ struct FileProperties
     CipherParams cp;
     HashType ht;
     std::string hash;
+    std::string key;
+
+    FileProperties(CipherParams cp, HashType ht) : ht(ht), cp(cp)
+    {
+        
+    }
 
     // simple parsing.
     void parse(const std::string& in, int offset = 0)

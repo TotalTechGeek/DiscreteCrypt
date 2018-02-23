@@ -318,16 +318,28 @@ void decodeEncrypted(Exchange& ex, FileProperties& fp, const std::string& fileNa
 }
 
 
-std::string hashFile(const std::string& filename, HashType p)
+void hmacFile(const std::string& filename, FileProperties& fp)
 {
     using namespace cppcrypto;
-    using namespace std;     
-    std::string res; 
+    using namespace std;
+
+    // Establish a key.
+    int keySize = getCipherKeySize(fp.cp.cipherType) / 8;
+    unsigned char *key = new unsigned char[keySize];
+    OS_GenerateRandomBlock(true, key, keySize);
+    fp.key = "";
+    fp.key.append((char*)key, keySize);
+
     unsigned char* hash;
     crypto_hash* bc;
-    getHash(p, bc);
-    bc->init();
+    
+    getHash(fp.ht, bc);
+
+    hmac mac(*bc, key, keySize);
+    mac.init();
+
     ifstream fi(filename, ios::binary);
+    
     hash = new unsigned char[bc->hashsize() / 8]();
     int x = bc->blocksize() / 8;
     if(x == 0) x = bc->hashsize() / 8;
@@ -345,27 +357,27 @@ std::string hashFile(const std::string& filename, HashType p)
         while(fsize > x)
         {
             fi.read(block, x);
-            bc->update((unsigned char*)block, x);
+            mac.update((unsigned char*)block, x);
             fsize -= x;
         }
 
         if(fsize)
         {
             fi.read(block, fsize);
-            bc->update((unsigned char*)block, fsize);
+            mac.update((unsigned char*)block, fsize);
         }
 
-        bc->final(hash);
+        mac.final(hash);
     }
     
-
-    res.append((char*)hash, bc->hashsize() / 8);
+    fp.hash = "";
+    fp.hash.append((char*)hash, bc->hashsize() / 8);
 
     fi.close();
+    delete[] key;
     delete[] block;
     delete[] hash;
     delete bc;
-    return res;
 }
 
 std::string hashPad(std::string hash, int blockSize)
@@ -413,6 +425,38 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     fo.write(&output[0], len);
 
 
+    
+    // Using the file's hash at the moment.
+    std::string h = fp.hash;
+    while(h.length() > blocksize) h.pop_back();
+    unsigned char* iv = (unsigned char*)&h[0];
+
+
+    ctr c(*bc);
+    c.init(key, keysize, iv, blocksize);
+    
+    
+    int k = keysize + (blocksize - keysize % blocksize);
+    
+    unsigned char* ikey = (unsigned char*)&fp.key[0], *okey = new unsigned char[k];
+    // fi.read((char*)ikey, keysize);
+
+    for(int i = 0; i < keysize; i += blocksize)
+    {
+        c.encrypt(ikey + i, blocksize, okey + i);
+    }
+
+    fo.write((char*)okey, keysize);
+
+
+    delete bc;
+
+    // Use the Key.
+    getCipher(fp.cp.cipherType, bc);
+    ctr c2(*bc);
+    c2.init(ikey, keysize, iv, blocksize);
+    
+
     // Gets the file size (hopefully)
     int fsize = 0;
     fi.seekg(0, ios::end);
@@ -420,23 +464,16 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     fi.seekg(0, ios::beg);
 
 
-    // Using the file's hash at the moment.
-    std::string h = fp.hash;
-    while(h.length() > blocksize) h.pop_back();
-    unsigned char* iv = (unsigned char*)&h[0];
-
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
-    ctr c(*bc);
-    c.init(key, keysize, iv, blocksize);
 
     if(fi.good() && !fi.bad())
     {
         while(fsize > blocksize)
         {
             fi.read(inBuf, blocksize);
-            c.encrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+            c2.encrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
             fo.write(outBuf, blocksize);
             fsize -= blocksize;
         }
@@ -444,12 +481,13 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         if(fsize)
         {
             fi.read(inBuf, fsize);
-            c.encrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+            c2.encrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
             fo.write(outBuf, fsize);
         }
     }
 
     delete bc;
+    delete[] okey;
     delete[] inBuf;
     delete[] outBuf;
     fi.close();
@@ -496,8 +534,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
 
     unsigned char* hash = new unsigned char[hc->hashsize() / 8];
-    hc->init();
-
+    
     int blocksize = (int)bc->blocksize() / 8;
     int keysize = (int)bc->keysize() / 8;
 
@@ -509,18 +546,37 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
-
-
     ctr c(*bc);
     c.init(key, keysize, iv, blocksize);
+
+    int k = keysize + (blocksize - keysize % blocksize);
+    
+    unsigned char* ikey = new unsigned char[k], *okey = new unsigned char[k];
+    fi.read((char*)ikey, keysize);
+    fsize -= keysize;
+
+    for(int i = 0; i < keysize; i += blocksize)
+    {
+        c.decrypt(ikey + i, blocksize, okey + i);
+    }
+
+    delete bc;
+
+    hmac mac(*hc, okey, keysize);
+    mac.init();
+
+    // Use the Key.
+    getCipher(fp.cp.cipherType, bc);
+    ctr c2(*bc);
+    c2.init(okey, keysize, iv, blocksize);
 
     if(fi.good() && !fi.bad())
     {
         while(fsize > blocksize)
         {
             fi.read(inBuf, blocksize);
-            c.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
-            hc->update((unsigned char*)outBuf, blocksize);
+            c2.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+            mac.update((unsigned char*)outBuf, blocksize);
             fo.write(outBuf, blocksize);
             fsize -= blocksize;
         }
@@ -528,13 +584,13 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         if(fsize)
         {
             fi.read(inBuf, fsize);
-            c.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
-            hc->update((unsigned char*)outBuf, fsize);
+            c2.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+            mac.update((unsigned char*)outBuf, fsize);
             fo.write(outBuf, fsize);
         }
     }
 
-    hc->final(hash);
+    mac.final(hash);
     char valid = 1;
 
     for(int i = 0; i < hc->hashsize() / 8; i++)
@@ -544,6 +600,8 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
     delete hc;
     delete bc;
+    delete[] ikey;
+    delete[] okey;
     delete[] hash;
     delete[] inBuf;
     delete[] outBuf;

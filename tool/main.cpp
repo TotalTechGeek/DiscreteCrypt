@@ -105,11 +105,9 @@ int main()
             cout << "To Send: ";
             getline(cin, file);
 
-            FileProperties fp;
-            fp.ht = h;
-            fp.hash = hashFile(file, h);
-            fp.cp = cp;
-        
+            FileProperties fp(cp, h);
+
+            hmacFile(file, fp);
 
             cout << "Out File: ";
             getline(cin, command);
@@ -178,7 +176,7 @@ int main()
             cout << "In File: ";
             getline(cin, command);
             Exchange ex;
-            FileProperties fp;
+            FileProperties fp(cp, h);
 
             decodeEncrypted(ex, fp, command);
 
@@ -211,7 +209,7 @@ int main()
             getline(cin, command);
             
             Exchange ex;
-            FileProperties fp;
+            FileProperties fp(cp, h);
             decodeEncrypted(ex, fp, command);
             
             dh = ex.dh;
@@ -223,7 +221,7 @@ int main()
             cout << "In File: ";
             getline(cin, command);
             Exchange ex;
-            FileProperties fp;
+            FileProperties fp(cp, h);
 
             decodeEncrypted(ex, fp, command);
             
@@ -283,7 +281,7 @@ int main()
             getline(cin, file);
             
             Exchange ex;
-            FileProperties fp;
+            FileProperties fp(cp, h);
             decodeEncrypted(ex, fp, file);
 
             
@@ -311,7 +309,7 @@ int main()
 
             cout << "Out File: ";
             getline(cin, command);
-            decryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType)).c_str());
+            cout << (decryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType)).c_str()) ? "Success" : "Fail") << endl;
         }
         else
         {
