@@ -59,7 +59,7 @@ if(isWindows())
     // if it isn't pure Cygwin though, use this approach instead.
     if(detect("mingw32-make"))
     {
-        copy("Makefile", "cppcrypto/cppcrypto/Makefile")
+        copy("resources/Makefile", "cppcrypto/cppcrypto/Makefile")
         // copy file mod in here.
         make = "mingw32-make UNAME=Cygwin"
     }
