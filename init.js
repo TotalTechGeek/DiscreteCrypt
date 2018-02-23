@@ -21,14 +21,14 @@ else
 // cppcrypto
 Resource("http://cfhcable.dl.sourceforge.net/project/cppcrypto/cppcrypto-0.17-src.zip", "cppcrypto.zip", function(f)
 {
-    extract(f)
+    extract2(f, "cppcrypto")
 })
 
 function make_program()
 {
     if(isWindows())
     {
-        sys("g++ -s -static -O3 -std=gnu++11 tool/main.cpp cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o test/cryptotool -lssp", function()
+        sys("g++ -s -static -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o test/cryptotool -lssp", function()
         {
             say("Program built.")
             if(detect("upx")) sys("upx test/cryptotool.exe --lzma")
@@ -36,7 +36,7 @@ function make_program()
     }
     else 
     {
-        sys("g++ -O3 -std=gnu++11 tool/main.cpp cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o test/cryptotool -msse2 -fstack-protector -lpthread", function()
+        sys("g++ -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o test/cryptotool -msse2 -fstack-protector -lpthread", function()
         {
             say("Program built")
         })
@@ -59,7 +59,7 @@ if(isWindows())
     // if it isn't pure Cygwin though, use this approach instead.
     if(detect("mingw32-make"))
     {
-        copy("Makefile", "cppcrypto/Makefile")
+        copy("Makefile", "cppcrypto/cppcrypto/Makefile")
         // copy file mod in here.
         make = "mingw32-make UNAME=Cygwin"
     }
@@ -67,10 +67,10 @@ if(isWindows())
     if(!detect("yasm"))
     {
         // downloads yasm for windows
-        Resource("http://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe", "cppcrypto/yasm.exe", function() {});
+        Resource("http://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe", "cppcrypto/cppcrypto/yasm.exe", function() {});
     }
 
-    sys("cd cppcrypto & " + make);
+    sys("cd cppcrypto/cppcrypto & " + make);
 }
 else 
 {
@@ -87,18 +87,18 @@ else
             sys("mkdir utils; cd yasm-1.3.0; sh configure; make", function()
             {
                 copy("yasm-1.3.0/yasm", "utils/yasm")
-                sys("PATH=$PATH:" + gwd() + "/utils; cd cppcrypto; make")
+                sys("PATH=$PATH:" + gwd() + "/utils; cd cppcrypto/cppcrypto; make")
             })
         })
     }
     else
     if(exists("utils"))
     {
-        sys("PATH=$PATH:" + gwd() + "/utils; cd cppcrypto; make")
+        sys("PATH=$PATH:" + gwd() + "/utils; cd cppcrypto/cppcrypto; make")
     }
     else
     {
-        sys("cd cppcrypto; make")
+        sys("cd cppcrypto/cppcrypto; make")
     }
 }
 
