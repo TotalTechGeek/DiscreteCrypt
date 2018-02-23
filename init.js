@@ -28,15 +28,15 @@ function make_program()
 {
     if(isWindows())
     {
-        sys("g++ -s -static -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o test/cryptotool -lssp", function()
+        sys("g++ -s -static -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o build/cryptotool -lssp", function()
         {
             say("Program built.")
-            if(detect("upx")) sys("upx test/cryptotool.exe --lzma")
+            if(detect("upx")) sys("upx build/cryptotool.exe --lzma")
         })
     }
     else 
     {
-        sys("g++ -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o test/cryptotool -msse2 -fstack-protector -lpthread", function()
+        sys("g++ -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o build/cryptotool -msse2 -fstack-protector -lpthread", function()
         {
             say("Program built")
         })
@@ -103,9 +103,9 @@ else
 }
 
 
-if(!exists("test"))
+if(!exists("build"))
 {
-    sys("mkdir test");            
+    sys("mkdir build");            
 }
         
 

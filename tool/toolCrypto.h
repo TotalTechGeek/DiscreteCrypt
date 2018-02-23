@@ -2,7 +2,7 @@
 
 #include "Parameters.h"
 #include "../cryptopp/osrng.h"
-#include "../cppcrypto/cppcrypto.h"
+#include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include <string>
 #include <fstream>
 
