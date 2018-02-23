@@ -89,6 +89,22 @@ int main()
             cp.cipherType = (CipherType)stoi(command, 0, 8);
             cout << getCipherName(cp.cipherType) << endl; 
         }
+        else if(command == "hash")
+        {
+            cout << "Cipher Mode: ";
+            getline(cin, command);
+            h = (HashType)stoi(command, 0, 8);
+            cout << getHashName(h) << endl;
+        }
+        else if(command == "hashList")
+        {
+            for(int i = 0; i < sizeof(AVAILABLE_HASHES_CODES) / sizeof(uint16_t); i++)
+            {
+                cout << AVAILABLE_HASHES[i] << " - " << std::oct << AVAILABLE_HASHES_CODES[i] << endl;
+                cout << std::dec;
+            }
+            
+        }
         else if(command == "to")
         {
             string file;
@@ -283,7 +299,7 @@ int main()
             Exchange ex;
             FileProperties fp(cp, h);
             decodeEncrypted(ex, fp, file);
-             
+
             cout << "1) " << ex.alice.identity << endl << "2) " << ex.bob.identity << endl;
             getline(cin, command);
 

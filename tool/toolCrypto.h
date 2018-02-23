@@ -209,6 +209,17 @@ void getHash(HashType h, cppcrypto::crypto_hash*& bc)
     }
 }
 
+
+std::string getHashName(HashType h)
+{
+    switch(h)
+    {
+        HASH_ENUM(MAKE_STRING)
+        default:
+        return "";
+    }
+}
+
 int getHashOutputSize(HashType h)
 {
     int res;
@@ -317,6 +328,19 @@ void decodeEncrypted(Exchange& ex, FileProperties& fp, const std::string& fileNa
 }
 
 
+std::string hashPad(std::string hash, int blockSize)
+{
+    if(hash.length() < blockSize)
+    {
+        unsigned char *c = new unsigned char[blockSize - hash.length()]();
+        OS_GenerateRandomBlock(true, c, blockSize - hash.length());
+        hash.append((char*)c, blockSize - hash.length());
+        delete[] c;
+    }
+
+    return hash;
+}
+
 void hmacFile(const std::string& filename, FileProperties& fp)
 {
     using namespace cppcrypto;
@@ -324,6 +348,7 @@ void hmacFile(const std::string& filename, FileProperties& fp)
 
     // Establish a key.
     int keySize = getCipherKeySize(fp.cp.cipherType) / 8;
+    int blockSize = getCipherBlockSize(fp.cp.cipherType) / 8;
     unsigned char *key = new unsigned char[keySize];
     OS_GenerateRandomBlock(true, key, keySize);
     fp.key = "";
@@ -372,6 +397,8 @@ void hmacFile(const std::string& filename, FileProperties& fp)
     fp.hash = "";
     fp.hash.append((char*)hash, bc->hashsize() / 8);
 
+    fp.hash = hashPad(fp.hash, blockSize);
+
     fi.close();
     delete[] key;
     delete[] block;
@@ -379,20 +406,8 @@ void hmacFile(const std::string& filename, FileProperties& fp)
     delete bc;
 }
 
-std::string hashPad(std::string hash, int blockSize)
-{
-    if(hash.length() < blockSize)
-    {
-        unsigned char *c = new unsigned char[hash.length() - blockSize];
-        OS_GenerateRandomBlock(true, c, hash.length() - blockSize);
-        hash.append((char*)c, hash.length() - blockSize);
-        delete[] c;
-    }
 
-    return hash;
-}
-
-void encryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, FileProperties& fp, const unsigned char* key)
+void encryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, const FileProperties& fp, const unsigned char* key)
 {
     using namespace std;
     using namespace cppcrypto;
@@ -404,8 +419,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 
     int blocksize = (int)bc->blocksize() / 8;
     int keysize = (int)bc->keysize() / 8;
-
-    fp.hash = hashPad(fp.hash, blocksize);
 
     string output = fp.out();
     int16_t len = (int16_t)output.length();
@@ -500,6 +513,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     using namespace cppcrypto;
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
+
     
     // Gets the file size (hopefully)
     int fsize = 0;
