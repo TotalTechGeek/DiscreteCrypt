@@ -158,6 +158,42 @@ int main()
             cout << dh.gen() << endl << endl;
             cout << dh.mod() << " (" << dh.mod().BitCount() << ")" << endl;
         }
+        else if(command == "pdh2")
+        {
+            Integer m = dh.mod() - 1;
+            for(int i = 2; i < 65536; i++)
+            {
+                while(!(m % i) && (m != i)) m /= i;
+            }
+
+            cout << dh.gen() << endl << endl;
+            cout << m << " (" << m.BitCount() << ")" << endl;
+        }
+        else if(command == "dhtest")
+        {
+            CryptoPP::AutoSeededRandomPool rnd;
+            cout << dh.mod() << " (" << dh.mod().BitCount() << ")" << endl;
+            bool mod = IsPrime(dh.mod()) && RabinMillerTest(rnd, dh.mod(), 3); 
+            cout << (mod ? "Valid" : "Invalid") << endl;
+
+
+            Integer m = dh.mod() - 1;
+            for(int i = 2; i < 65536; i++)
+            {
+                while(!(m % i) && (m != i)) m /= i;
+            }
+
+            cout << dh.gen() << endl << endl;
+            cout << m << " (" << m.BitCount() << ")" << endl;
+
+            bool poh = IsPrime(m) && RabinMillerTest(rnd, m, 3);
+            cout << (poh ? "Valid" : "Invalid") << endl;
+
+            cout << endl;
+            cout << ((poh&&mod) ? "Verified" : "Bad Parameters") << endl;
+
+
+        }
         else if(command == "ciphlist")
         {   
             for(int i = 0; i < sizeof(AVAILABLE_CIPHERS_CODES) / sizeof(int16_t); i++)
