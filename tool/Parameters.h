@@ -160,87 +160,18 @@ struct PersonParameters
     // Ideally this would be in contact but meh
     CryptoPP::Integer publicKey;
 
-    PersonParameters()
-    {
+    PersonParameters();
+    PersonParameters(const PersonParameters& p);
+    PersonParameters(const std::string& identity, const std::string& salt, char* publicKey);
+    PersonParameters(const std::string& identity, const std::string& salt, CryptoPP::Integer publicKey);
+    PersonParameters(const std::string& in, int offset = 0);
 
-    }
+    void parse(const std::string& in, int offset = 0);
 
-    PersonParameters(const PersonParameters& p) : identity(p.identity), salt(p.salt), publicKey(p.publicKey)
-    {
-
-    }
-
-    PersonParameters(const std::string& identity, const std::string& salt, char* publicKey) : identity(identity), salt(salt), publicKey(publicKey)
-    {
-
-    }
-
-    PersonParameters(const std::string& identity, const std::string& salt, CryptoPP::Integer publicKey) : identity(identity), salt(salt), publicKey(publicKey)
-    {
-
-    }
-
-    PersonParameters(const std::string& in, int offset = 0) : publicKey("0")
-    {
-        parse(in, offset);
-    }
-
-    void parse(const std::string& in, int offset = 0)
-    {
-        int16_t len1, len2, len3;
-
-        len1 = *(int16_t*)&in[offset + 0*sizeof(int16_t)];
-        len2 = *(int16_t*)&in[offset + 1*sizeof(int16_t)];
-        len3 = *(int16_t*)&in[offset + 2*sizeof(int16_t)];
-
-        identity = in.substr(offset + 3*sizeof(int16_t), len1);
-        salt = in.substr(offset + 3*sizeof(int16_t) + len1, len2);
-        publicKey.Decode((unsigned char*)&in[offset + 3*sizeof(int16_t) + len1 + len2], len3);
-    }
-
-    int len() const
-    {
-        return salt.length() + identity.length() + publicKey.ByteCount() + sizeof(int16_t) * 3;
-    }
-
-    std::string saltHex() const
-    {
-        std::string result;
-        static char lookup[] = "0123456789ABCDEF";
-        for(int i = 0; i < salt.length(); i++)
-        {
-            result += lookup[(salt[i] >> 4) & 15];
-            result += lookup[salt[i] & 15];
-        }
-
-        return result;
-    }
-
-    std::string out() const
-    {
-        std::string result;
-
-        int16_t len = identity.length();
-        result.append((char*)&len, sizeof(int16_t));
-
-        len = salt.length();
-        result.append((char*)&len, sizeof(int16_t));
-                
-        len = (int16_t)publicKey.ByteCount();
-        result.append((char*)&len, sizeof(int16_t));
-        
-        unsigned char* out1 = new unsigned char[len];
-        publicKey.Encode(out1, len);
-        
-        result.append(identity);
-        result.append(salt);
-        result.append((char*)out1, len);
-
-        delete[] out1;
-
-        return result;
-    }
-
+    int len() const;
+    std::string saltHex() const;
+    
+    std::string out() const;
 };
 
 struct Contact
