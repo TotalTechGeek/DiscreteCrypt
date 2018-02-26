@@ -26,22 +26,14 @@ Resource("http://cfhcable.dl.sourceforge.net/project/cppcrypto/cppcrypto-0.17-sr
 
 function make_program()
 {
-    if(isWindows())
+    var make = "make"
+    if(detect("mingw32-make")) make = "mingw32-make"
+
+    sys(make, function()
     {
-        sys("g++ -s -static -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o build/cryptotool -lssp", function()
-        {
-            say("Program built.")
-            if(detect("upx")) sys("upx build/cryptotool.exe --lzma")
-        })
-    }
-    else 
-    {
-        sys("g++ -O3 -std=gnu++11 tool/main.cpp cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -o build/cryptotool -msse2 -fstack-protector -lpthread", function()
-        {
-            say("Program built")
-            if(detect("upx")) sys("upx build/cryptotool --lzma")
-        })
-    }
+        if(detect("upx")) sys("upx build/cryptotool.exe --lzma")
+        say("Program built.")    
+    })
 }
 
 if(!detect("g++"))

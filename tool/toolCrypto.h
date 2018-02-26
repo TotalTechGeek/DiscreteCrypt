@@ -122,14 +122,14 @@ std::string getPassword()
 }
 #endif
 
-std::string intToScrypt(const Integer& i, const ScryptParameters& sp, int keyLen, const FileProperties& fp)
+std::string intToScrypt(const CryptoPP::Integer& i, const ScryptParameters& sp, int keyLen, const FileProperties& fp)
 {
     unsigned char* dub1Out = new unsigned char[i.ByteCount()];
     i.Encode(dub1Out, i.ByteCount());
     return getScrypt((char*)dub1Out, fp.hash, sp.N, sp.P, sp.R, keyLen);
 }
 
-Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp)
+CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp)
 {
     using namespace std;
     std::string identity, password;
@@ -147,7 +147,7 @@ Integer createContact(Contact& con, const DHParameters& dh, const ScryptParamete
 
     if(password == "")
     {
-        OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+        CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
         for(int i = 0; i < SALT_SIZE; i++)
         {
             password += PWD[saltC[i] % (sizeof(PWD)-1)];
@@ -155,7 +155,7 @@ Integer createContact(Contact& con, const DHParameters& dh, const ScryptParamete
         cout << "Using Password: " << password << endl;
     }
 
-    OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+    CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
     
     std::string salt;
     salt.append(saltC);
@@ -333,7 +333,7 @@ std::string hashPad(std::string hash, int blockSize)
     if(hash.length() < blockSize)
     {
         unsigned char *c = new unsigned char[blockSize - hash.length()]();
-        OS_GenerateRandomBlock(true, c, blockSize - hash.length());
+        CryptoPP::OS_GenerateRandomBlock(true, c, blockSize - hash.length());
         hash.append((char*)c, blockSize - hash.length());
         delete[] c;
     }
@@ -350,7 +350,7 @@ void hmacFile(const std::string& filename, FileProperties& fp)
     int keySize = getCipherKeySize(fp.cp.cipherType) / 8;
     int blockSize = getCipherBlockSize(fp.cp.cipherType) / 8;
     unsigned char *key = new unsigned char[keySize];
-    OS_GenerateRandomBlock(true, key, keySize);
+    CryptoPP::OS_GenerateRandomBlock(true, key, keySize);
     fp.key = "";
     fp.key.append((char*)key, keySize);
 

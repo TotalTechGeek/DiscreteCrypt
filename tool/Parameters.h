@@ -2,96 +2,28 @@
 #include "../cryptopp/integer.h"
 #include <string>
 
-using CryptoPP::Integer;
-
-using CryptoPP::OS_GenerateRandomBlock;
 class DHParameters
 {
     private:
-    Integer modulus;
-    Integer generator;
+    CryptoPP::Integer modulus;
+    CryptoPP::Integer generator;
 
     public:
-    DHParameters() : modulus("0"), generator("0")
-    {
+    DHParameters();
+    DHParameters(const DHParameters& d);
+    DHParameters(const std::string& in, int offset = 0);
+    DHParameters(const char* gen, const char* mod);
+    DHParameters(const std::string& gen, const std::string& mod);
+    void parse(const std::string& in, int offset = 0);
 
-    }
-
-    DHParameters(const DHParameters& d) : modulus(d.modulus), generator(d.generator)
-    {
-
-    }
-
-    DHParameters(const std::string& in, int offset = 0) : modulus("0"), generator("0")
-    {
-        parse(in, offset);
-    }
-
-    DHParameters(const char* gen, const char* mod) : modulus(mod), generator(gen)
-    {}
-
-    DHParameters(const std::string& gen, const std::string& mod) : modulus(mod.c_str()), generator(gen.c_str())
-    {}
-
-    void parse(const std::string& in, int offset = 0)
-    {
-        int16_t len1, len2;
-
-        len1 = *(int16_t*)&in[offset];
-        len2 = *(int16_t*)&in[offset + sizeof(int16_t)];
-        
-        modulus.Decode((unsigned char*)&in[offset + 2 * sizeof(int16_t)], len1);
-        generator.Decode((unsigned char*)&in[offset + 2 * sizeof(int16_t) + len1], len2);
-    }
-
-    int len() const
-    {
-        return modulus.ByteCount() + generator.ByteCount() + sizeof(int16_t) * 2;
-    }
-
-    Integer mod() const
-    {
-        return modulus;
-    }
-
-    void mod(Integer x)
-    {
-        modulus = x;
-    }
-
-    Integer gen() const
-    {
-        return generator;
-    }
-
-    void gen(Integer x)
-    {
-        generator = x;
-    }
+    int len() const;
+    CryptoPP::Integer mod() const;
+    void mod(CryptoPP::Integer x);
+    CryptoPP::Integer gen() const;
+    void gen(CryptoPP::Integer x);
 
     // Currently a very dumb hack.
-    std::string out() const
-    {
-        unsigned char* out1 = new unsigned char[modulus.ByteCount()];
-        unsigned char* out2 = new unsigned char[generator.ByteCount()];
-        std::string result;
-        
-        //append the lengths
-        int16_t len1 = (int16_t)modulus.ByteCount(), len2 = (int16_t)generator.ByteCount();
-        result.append((char*)(&len1), sizeof(int16_t));
-        result.append((char*)(&len2), sizeof(int16_t));
-
-        modulus.Encode(out1, modulus.ByteCount());
-        result.append((char*)out1, modulus.ByteCount());
-        
-        generator.Encode(out2, generator.ByteCount());
-        result.append((char*)out2, generator.ByteCount());
-        
-        delete[] out1;
-        delete[] out2;
-
-        return result;
-    }
+    std::string out() const;
 };
 
 
@@ -198,15 +130,8 @@ struct CipherParams
     CipherType cipherType;
     int8_t mode;
 
-    CipherParams() : cipherType(AES256), mode()
-    {
-
-    }
-
-    CipherParams(const CipherParams& c) : cipherType(c.cipherType), mode(c.mode)
-    {
-
-    }
+    CipherParams();
+    CipherParams(const CipherParams& c);
 };
 
 // Fortunately the same size each time :)
@@ -217,20 +142,9 @@ struct ScryptParameters
     int32_t R;
     int32_t len;
 
-    ScryptParameters() : N(1 << 14), P(16), R(8), len(32)
-    {
-
-    }
-
-    ScryptParameters(const ScryptParameters& s) : N(s.N), P(s.P), R(s.R), len(s.len)
-    {
-
-    }
-
-    ScryptParameters(int32_t N, int32_t P, int32_t R, int32_t len) : N(N), P(P), R(R), len(len)
-    {
-
-    }
+    ScryptParameters();
+    ScryptParameters(const ScryptParameters& s);
+    ScryptParameters(int32_t N, int32_t P, int32_t R, int32_t len);
 };
 
 // This will also be paired with a set of dh params and a scrypt.
@@ -244,7 +158,7 @@ struct PersonParameters
 
     // This is the person's public key.
     // Ideally this would be in contact but meh
-    Integer publicKey;
+    CryptoPP::Integer publicKey;
 
     PersonParameters()
     {
@@ -261,7 +175,7 @@ struct PersonParameters
 
     }
 
-    PersonParameters(const std::string& identity, const std::string& salt, Integer publicKey) : identity(identity), salt(salt), publicKey(publicKey)
+    PersonParameters(const std::string& identity, const std::string& salt, CryptoPP::Integer publicKey) : identity(identity), salt(salt), publicKey(publicKey)
     {
 
     }
@@ -335,42 +249,12 @@ struct Contact
     ScryptParameters sp;
     DHParameters dh;
 
-    Contact()
-    {
-
-    }
-
-    Contact(const Contact& c) : person(c.person), sp(c.sp), dh(c.dh)
-    {
-
-    }
-
-    Contact(const PersonParameters& p, const ScryptParameters& sp, const DHParameters& dh) : dh(dh), sp(sp), person(person)
-    {
-    }
-
-    Contact(const std::string& in, int offset = 0) 
-    {
-        parse(in, offset);
-    }
-
-    void parse(const std::string& in, int offset = 0)
-    {
-        person.parse(in, offset);
-        sp = *(ScryptParameters*)&in[offset + person.len()];
-        dh.parse(in, sizeof(ScryptParameters) + offset + person.len());
-    }
-
-    std::string out() const
-    {
-        std::string result;
-
-        result.append(person.out());
-        result.append((char*)&sp, sizeof(sp));
-        result.append(dh.out());
-
-        return result;
-    }
+    Contact();
+    Contact(const Contact& c);
+    Contact(const PersonParameters& p, const ScryptParameters& sp, const DHParameters& dh);
+    Contact(const std::string& in, int offset = 0);
+    void parse(const std::string& in, int offset = 0);
+    std::string out() const;
 };
 
 
@@ -384,46 +268,11 @@ struct FileProperties
     std::string hash;
     std::string key;
 
-    FileProperties(CipherParams cp, HashType ht) : ht(ht), cp(cp)
-    {
-        
-    }
+    FileProperties(CipherParams cp, HashType ht);
 
     // simple parsing.
-    void parse(const std::string& in, int offset = 0)
-    {
-        version = in[offset];
-        offset += sizeof(char);
-
-        recipients = *(int16_t*)&in[offset];
-        offset += sizeof(int16_t);
-        
-        cp = *(CipherParams*)&in[offset];
-        offset += sizeof(CipherParams);
-        
-        ht = *(HashType*)&in[offset];
-        offset += sizeof(HashType);
-
-        int16_t len = *(int16_t*)&in[offset];
-        offset += sizeof(int16_t);
-        hash = in.substr(offset, len);
-    }
-    
-    std::string out() const
-    {
-        std::string res; 
-        int16_t len;
-        len = (int16_t)(hash.length());
-        
-        res.append((char*)&version, sizeof(char));
-        res.append((char*)&recipients, sizeof(int16_t));
-        res.append((char*)&cp, sizeof(CipherParams));
-        res.append((char*)&ht, sizeof(HashType));
-        res.append((char*)&len, sizeof(int16_t));
-        res.append(hash);
-
-        return res;
-    }
+    void parse(const std::string& in, int offset = 0);
+    std::string out() const;
 };
 
 // This is gonna be a pain lol.
@@ -433,41 +282,13 @@ struct Exchange
     ScryptParameters sp;
     DHParameters dh;
 
-    Exchange()
-    {}
+    Exchange();
+    Exchange(const Exchange& ex);
+    Exchange(const PersonParameters& a, const PersonParameters& b, const ScryptParameters& s, const CipherParams& cp, const DHParameters& dh);
 
-    Exchange(const Exchange& ex) : alice(ex.alice), bob(ex.bob), sp(ex.sp), dh(ex.dh)
-    {}
+    Exchange(const std::string& in, int offset = 0);
+    void parse(const std::string& in, int offset = 0);
 
-    Exchange(const PersonParameters& a, const PersonParameters& b, const ScryptParameters& s, const CipherParams& cp, const DHParameters& dh) : alice(a), bob(b), sp(s), dh(dh)
-    {
-
-    }
-
-    // Such a hack, let us hope it works. :D
-    Exchange(const std::string& in, int offset = 0) 
-    {
-        parse(in, offset);
-    }
-
-    void parse(const std::string& in, int offset = 0)
-    {
-        alice.parse(in, offset);
-        bob.parse(in, alice.len() + offset);
-        sp = *(ScryptParameters*)&in[offset + alice.len() + bob.len()];
-        dh.parse(in, sizeof(ScryptParameters) + offset + alice.len() + bob.len());
-    }
-
-    std::string out() const
-    {
-        std::string result;
-
-        result.append(alice.out());
-        result.append(bob.out());
-        result.append((char*)&sp, sizeof(ScryptParameters));
-        result.append(dh.out());
-
-        return result;
-    }
+    std::string out() const;
 };
 

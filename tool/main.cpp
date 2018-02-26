@@ -33,6 +33,8 @@ using namespace std;
 
 int main()
 {
+    using CryptoPP::Integer;
+    using CryptoPP::OS_GenerateRandomBlock;
     ScryptParameters sp;
     CipherParams cp;
     HashType h = HashType::SHA256;
