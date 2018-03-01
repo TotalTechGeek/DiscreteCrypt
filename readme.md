@@ -1,7 +1,7 @@
 # DiscreteCrypt
 ---
 
-Documentation for this tool is on the way. It's going to be an alternative to something like PGP, using Discrete Log Cryptography. The algorithm is currently in v1.5 and the interface is quite clunky.
+Documentation for this tool is on the way. It's going to be an alternative to something like PGP, using Discrete Log Cryptography. The algorithm is currently in v1.5 and the user experience is a bit clunky.
 
 At the moment the focus is on developing the functionality rather than user experience. 
 
@@ -41,5 +41,7 @@ Will let you send a file to a contact.
 #### open
 
 Will let you open an encrypted file.
+
+---
 
 You are also able to use commands to switch out the Discrete Log parameters, and the different ciphers and hash functions.
