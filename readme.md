@@ -32,7 +32,7 @@ Will give you a list of most of the available commands.
 
 #### c 
 
-Will let you create a (c)ontact.
+Will let you create a (c)ontact file so others will be able to send secure files to you.
 
 #### to 
 
