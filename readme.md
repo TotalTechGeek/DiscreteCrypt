@@ -14,7 +14,7 @@ To build run
 java -jar Dave.jar
 ```
 
-Which will execute the init script. This will build the code for x86/x86_64 platforms.
+Which will execute the init script. This will build the code for x86/x86_64 platforms. ARM support is coming soon. 
 
 The tool will grab the necessary dependencies to build the project (like cryptopp, cppcrypto, and potentially yasm).
 
