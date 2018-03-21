@@ -1,9 +1,9 @@
 # DiscreteCrypt
 ---
 
-Documentation for this tool is on the way. It's going to be an alternative to something like PGP, using Discrete Log Cryptography. The algorithm is currently in v1.5 and the user experience is a bit clunky.
+Documentation for this tool is on the way. It's going to be an alternative to something like PGP, using Discrete Log Cryptography. The algorithm is currently in v1.75 and the user experience is a bit clunky.
 
-At the moment the focus is on developing the functionality rather than user experience. 
+At the moment the focus is on fully developing the functionality rather than user experience. 
 
 ## To Build
 
@@ -36,7 +36,7 @@ Will let you create a (c)ontact file so others will be able to send secure files
 
 #### to 
 
-Will let you send a file to a contact.
+Will let you send a file to different contacts (comma delimited).
 
 #### open
 
