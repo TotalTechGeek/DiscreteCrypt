@@ -164,7 +164,7 @@ int main()
             vector<Contact> recipients;
             vector<DataExtension> extensions;
             vector<string> recipients_s;
-
+            
             StringSplitFunctions::splitString(recipients_s, command, ",");
 
             for(int i = 0; i < recipients_s.size(); i++)
@@ -191,7 +191,6 @@ int main()
             fp.recipients = recipients.size();
             fp.extensions = extensions.size();
 
-            
             encryptFile(file, command, recipients, extensions, fp, password);
         }
         // allows you to specify the DH Params for creating contacts.
@@ -291,7 +290,6 @@ int main()
             Exchange ex;
             FileProperties fp(cp, h);
             vector<Exchange> exchanges;
-            vector<DataExtension> extensions;
             decodeEncrypted(exchanges, fp, command);
 
             cout << "File Format Version: " << (int)fp.version << endl << endl;
@@ -337,7 +335,6 @@ int main()
             Exchange ex;
             FileProperties fp(cp, h);
             vector<Exchange> exchanges;
-            vector<DataExtension> extensions;
             decodeEncrypted(exchanges, fp, command);
             
             for(int i = 0; i < exchanges.size(); i++)
@@ -356,7 +353,6 @@ int main()
             cout << "In File: ";
             getline(cin, command);
             vector<Exchange> exchanges;
-            vector<DataExtension> extensions;
             FileProperties fp(cp, h);
 
             decodeEncrypted(exchanges, fp, command);
@@ -446,7 +442,7 @@ int main()
             cout << "Out File: ";
             getline(cin, command);
 
-            cout << (decryptFile(file, command, exchanges, fp, password, person) ? "Success" : "Fail") << endl;
+            cout << (decryptFile(file, command, exchanges, extensions, fp, password, person) ? "Success" : "Fail") << endl;
         }
         else
         {

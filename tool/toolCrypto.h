@@ -690,7 +690,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 }
 
 
-char decryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, const FileProperties& fp, const std::string& password, int person = 0)
+char decryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, std::vector<DataExtension>& extensions, const FileProperties& fp, const std::string& password, int person = 0)
 {
     using namespace std;
     using namespace cppcrypto;
@@ -826,7 +826,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
                 if(left <= buf.length())
                 {
-                    out.append(&buf[0], (int)left);
+                    out.append(&buf[0], left + sizeof(int16_t));
                     buf = buf.substr(left + sizeof(int16_t));
                     left = -1;
                     extracted++;
@@ -861,7 +861,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
                 if(left <= buf.length())
                 {
-                    out.append(&buf[0], (int)left);
+                    out.append(&buf[0], left + sizeof(int16_t));
                     buf = buf.substr(left + sizeof(int16_t));
                     left = -1;
                     extracted++;
@@ -877,6 +877,19 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
                 fo.write(outBuf, fsize);
             }
         }
+
+        // Parses the Extensions
+        DataExtension ex;
+        int offset = 0;
+        for(int i = 0; i < fp.extensions; i++)
+        {
+            len = *(int16_t*)&out[offset];
+            offset += sizeof(int16_t);
+            ex.parse(out, offset);
+            extensions.push_back(ex);
+            offset += len;
+        }   
+        
     }
 
     mac.final(hash);
