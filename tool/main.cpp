@@ -179,16 +179,18 @@ int main()
             getline(cin, file);
 
             FileProperties fp(cp, h);
-           
-            hmacFile(file, fp);
+
+            hmacFile(file, extensions, fp);
 
             cout << "Out File: ";
             getline(cin, command);
 
             string password("");
-    
+
+            
             fp.recipients = recipients.size();
             fp.extensions = extensions.size();
+
             
             encryptFile(file, command, recipients, extensions, fp, password);
         }
@@ -290,7 +292,7 @@ int main()
             FileProperties fp(cp, h);
             vector<Exchange> exchanges;
             vector<DataExtension> extensions;
-            decodeEncrypted(exchanges, extensions, fp, command);
+            decodeEncrypted(exchanges, fp, command);
 
             cout << "File Format Version: " << (int)fp.version << endl << endl;
             cout << "People: " << endl;
@@ -336,7 +338,7 @@ int main()
             FileProperties fp(cp, h);
             vector<Exchange> exchanges;
             vector<DataExtension> extensions;
-            decodeEncrypted(exchanges, extensions, fp, command);
+            decodeEncrypted(exchanges, fp, command);
             
             for(int i = 0; i < exchanges.size(); i++)
             {
@@ -357,7 +359,7 @@ int main()
             vector<DataExtension> extensions;
             FileProperties fp(cp, h);
 
-            decodeEncrypted(exchanges, extensions, fp, command);
+            decodeEncrypted(exchanges, fp, command);
             Exchange ex;
             
              for(int i = 0; i < exchanges.size(); i++)
@@ -427,7 +429,7 @@ int main()
 
             vector<Exchange> exchanges;
             vector<DataExtension> extensions;
-            decodeEncrypted(exchanges, extensions, fp, file);
+            decodeEncrypted(exchanges, fp, file);
 
             for(int i = 0; i < exchanges.size(); i++)
             {

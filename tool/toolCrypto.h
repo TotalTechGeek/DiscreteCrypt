@@ -345,12 +345,11 @@ void decodeFile(T& c, const std::string& fileName)
     fi.close();
 }
 
-void decodeEncrypted(std::vector<Exchange>& exchanges, std::vector<DataExtension>& extensions, FileProperties& fp, const std::string& fileName)
+void decodeEncrypted(std::vector<Exchange>& exchanges, FileProperties& fp, const std::string& fileName)
 {
     using namespace std;
     ifstream fi(fileName, ios::binary);
     Exchange ex;
-    DataExtension de;
     
     if(fi.good())
     {
@@ -387,23 +386,6 @@ void decodeEncrypted(std::vector<Exchange>& exchanges, std::vector<DataExtension
             delete[] block;
         }
 
-        // Reads in all the extensions.
-        for(int i = 0; i < fp.extensions; i++)
-        {
-            // Get the size of the ex
-            fi.read(in, sizeof(int16_t));
-            len = *(int16_t*)in;
-
-            // Read in the Exchange
-            block = new char[len];
-            fi.read(block, len);
-            s = "";
-            s.append(block, len);
-            de.parse(s);
-            extensions.push_back(de);
-            delete[] block;
-        }
-        
         delete[] in;
         
     }
@@ -424,7 +406,24 @@ std::string hashPad(std::string hash, int blockSize)
     return hash;
 }
 
-void hmacFile(const std::string& filename, FileProperties& fp)
+// Creates a key for the file.
+void createFileKey(FileProperties& fp)
+{
+    int keySize = getCipherKeySize(fp.cp.cipherType) / 8;
+    int blockSize = getCipherBlockSize(fp.cp.cipherType) / 8;
+    unsigned char *key = new unsigned char[keySize];
+    CryptoPP::OS_GenerateRandomBlock(true, key, keySize);
+    fp.key = "";
+    fp.key.append((char*)key, keySize);
+    delete[] key;
+}
+
+// Todo: Create a new method to compute a hash of the file for the extensions.
+// Since extensions will be included in the encrypted payload, HMACs will not be necessary
+// even if there were a way to extract a hash from a signature.
+
+// Modify this to include extensions as part of the payload
+void hmacFile(const std::string& filename, const std::vector<DataExtension>& extensions, FileProperties& fp)
 {
     using namespace cppcrypto;
     using namespace std;
@@ -432,18 +431,26 @@ void hmacFile(const std::string& filename, FileProperties& fp)
     // Establish a key.
     int keySize = getCipherKeySize(fp.cp.cipherType) / 8;
     int blockSize = getCipherBlockSize(fp.cp.cipherType) / 8;
-    unsigned char *key = new unsigned char[keySize];
-    CryptoPP::OS_GenerateRandomBlock(true, key, keySize);
-    fp.key = "";
-    fp.key.append((char*)key, keySize);
+    createFileKey(fp);
 
     unsigned char* hash;
     crypto_hash* bc;
     
     getHash(fp.ht, bc);
 
-    hmac mac(*bc, key, keySize);
+    hmac mac(*bc, (unsigned char*)fp.key.c_str(), keySize);
     mac.init();
+
+    // Hashes each of the extensions.
+    for(int i = 0; i < extensions.size(); i++)
+    {
+        string output = extensions[i].out();
+        int16_t len = (int16_t)output.length();
+
+        // Write the extensions
+        mac.update((unsigned char*)&len, sizeof(int16_t));
+        mac.update((unsigned char*)&output[0], len);
+    }
 
     ifstream fi(filename, ios::binary);
     
@@ -479,11 +486,9 @@ void hmacFile(const std::string& filename, FileProperties& fp)
     
     fp.hash = "";
     fp.hash.append((char*)hash, bc->hashsize() / 8);
-
     fp.hash = hashPad(fp.hash, blockSize);
 
     fi.close();
-    delete[] key;
     delete[] block;
     delete[] hash;
     delete bc;
@@ -552,7 +557,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         ex.computed = p;
         exchanges.push_back(ex);
     }
-    
+
     // Writes each of the exchanges.
     for(int i = 0; i < exchanges.size(); i++)
     {
@@ -564,19 +569,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         fo.write(&output[0], len);
     }
 
-
-    // Writes each of the extensions
-    for(int i = 0; i < extensions.size(); i++)
-    {
-        output = extensions[i].out();
-        len = (int16_t)output.length();
-
-        // Write the extensions
-        fo.write((char*)&len, sizeof(int16_t));
-        fo.write(&output[0], len);
-    }
-    
-    
     // Using the file's hash at the moment.
     std::string h = fp.hash;
     while(h.length() > blocksize) h.pop_back();
@@ -625,6 +617,55 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 
     if(fi.good() && !fi.bad())
     {
+
+        std::string out("");
+        
+        // Writes each of the extensions
+        for(int i = 0; i < extensions.size(); i++)
+        {
+            output = extensions[i].out();
+            len = (int16_t)output.length();
+
+            // Write the extensions
+            out.append((char*)&len, sizeof(int16_t));
+            out.append(&output[0], len);
+        }
+
+        // Writes out every full block
+        while(out.length() > blocksize)
+        {
+            c2.encrypt((unsigned char*)&out[0], blocksize, (unsigned char*)outBuf);
+            fo.write(outBuf, blocksize);
+            out = out.substr(blocksize);
+        }
+
+        // This should work but we will see. 
+        if(out.length())
+        {
+            for(int i = 0; i < out.length(); i++)
+            {
+                inBuf[i] = out[i];
+            }
+
+            // 16 >= 32 - 16
+            if(fsize >= blocksize - out.length())
+            {
+                fi.read(inBuf + out.length(), blocksize - out.length());
+                c2.encrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+                fo.write(outBuf, blocksize);
+                fsize -= blocksize - out.length();
+            }
+            // 15 >= 32 - 16
+            else
+            {
+                fi.read(inBuf + out.length(), fsize);
+                c2.encrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
+                fo.write(outBuf, out.length() + fsize);
+                fsize = 0;
+            }
+        }
+
+
         while(fsize > blocksize)
         {
             fi.read(inBuf, blocksize);
@@ -676,17 +717,6 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     
     // Skip the exchanges
     for(int i = 0; i < exchanges.size(); i++)
-    {
-        fi.read(lenRead, sizeof(int16_t));
-        len = *(int16_t*)lenRead;
-        fi.ignore(len);
-
-        fsize -= len;
-        fsize -= sizeof(int16_t);
-    }
-    
-    // Skips the extensions.
-    for(int i = 0; i < fp.extensions; i++)
     {
         fi.read(lenRead, sizeof(int16_t));
         len = *(int16_t*)lenRead;
@@ -774,12 +804,43 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
     if(fi.good() && !fi.bad())
     {
+        int extracted = 0;
+        int16_t left = -1;
+        std::string out;
+        std::string buf;
+
         while(fsize > blocksize)
         {
             fi.read(inBuf, blocksize);
             c2.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
             mac.update((unsigned char*)outBuf, blocksize);
-            fo.write(outBuf, blocksize);
+
+            // Hopefully this will work.
+            if(extracted < fp.extensions)
+            {
+                buf.append(outBuf, blocksize);
+                if(left == -1)
+                {
+                    left = *(int16_t*)&buf[0];
+                }
+
+                if(left <= buf.length())
+                {
+                    out.append(&buf[0], (int)left);
+                    buf = buf.substr(left + sizeof(int16_t));
+                    left = -1;
+                    extracted++;
+                }
+
+                if(extracted == fp.extensions)
+                {
+                    fo.write(&buf[0], buf.length());    
+                }
+            }
+            else
+            {
+                fo.write(outBuf, blocksize);
+            }
             fsize -= blocksize;
         }
 
@@ -788,7 +849,33 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
             fi.read(inBuf, fsize);
             c2.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
             mac.update((unsigned char*)outBuf, fsize);
-            fo.write(outBuf, fsize);
+            
+            // Hopefully this will work.
+            if(extracted < fp.extensions)
+            {
+                buf.append(outBuf, fsize);
+                if(left == -1)
+                {
+                    left = *(int16_t*)&buf[0];
+                }
+
+                if(left <= buf.length())
+                {
+                    out.append(&buf[0], (int)left);
+                    buf = buf.substr(left + sizeof(int16_t));
+                    left = -1;
+                    extracted++;
+                }
+
+                if(extracted == fp.extensions)
+                {
+                    fo.write(&buf[0], buf.length());    
+                }
+            }
+            else
+            {
+                fo.write(outBuf, fsize);
+            }
         }
     }
 
