@@ -95,13 +95,6 @@ ScryptParameters::ScryptParameters(int32_t N, int32_t P, int32_t R, int32_t len)
 {
 }
 
-
-
-
-
-
-
-
 PersonParameters::PersonParameters()
 {
 }
@@ -181,7 +174,7 @@ Contact::Contact(const Contact& c) : person(c.person), sp(c.sp), dh(c.dh)
 {
 }
 
-Contact::Contact(const PersonParameters& p, const ScryptParameters& sp, const DHParameters& dh) : dh(dh), sp(sp), person(person)
+Contact::Contact(const PersonParameters& p, const ScryptParameters& sp, const DHParameters& dh) : dh(dh), sp(sp), person(p)
 {
 }
 
@@ -217,16 +210,22 @@ void FileProperties::parse(const std::string& in, int offset)
 {
     version = in[offset];
     offset += sizeof(char);
+
     recipients = *(int16_t*)&in[offset];
     offset += sizeof(int16_t);
     
+    extensions = *(int16_t*)&in[offset];
+    offset += sizeof(int16_t);
+
     cp = *(CipherParams*)&in[offset];
     offset += sizeof(CipherParams);
     
     ht = *(HashType*)&in[offset];
     offset += sizeof(HashType);
+    
     int16_t len = *(int16_t*)&in[offset];
     offset += sizeof(int16_t);
+    
     hash = in.substr(offset, len);
 }
     
@@ -238,6 +237,7 @@ std::string FileProperties::out() const
     
     res.append((char*)&version, sizeof(char));
     res.append((char*)&recipients, sizeof(int16_t));
+    res.append((char*)&extensions, sizeof(int16_t));
     res.append((char*)&cp, sizeof(CipherParams));
     res.append((char*)&ht, sizeof(HashType));
     res.append((char*)&len, sizeof(int16_t));
@@ -249,7 +249,7 @@ std::string FileProperties::out() const
 Exchange::Exchange()
 {}
 
-Exchange::Exchange(const Exchange& ex) : alice(ex.alice), bob(ex.bob), sp(ex.sp), dh(ex.dh)
+Exchange::Exchange(const Exchange& ex) : alice(ex.alice), bob(ex.bob), sp(ex.sp), dh(ex.dh), computed(ex.computed)
 {}
 
 Exchange::Exchange(const PersonParameters& a, const PersonParameters& b, const ScryptParameters& s, const CipherParams& cp, const DHParameters& dh) : alice(a), bob(b), sp(s), dh(dh)
@@ -279,3 +279,28 @@ std::string Exchange::out() const
     result.append(dh.out());
     return result;
 }
+
+std::string DataExtension::out() const
+{
+    std::string result;
+
+    int16_t len = data.size();
+    result.append((char*)&et, sizeof(ExtensionType));
+    
+    result.append((char*)&len, sizeof(int16_t));
+    result.append(data);
+    
+    return result;
+}
+
+ void DataExtension::parse(const std::string& in, int offset)
+ {
+    et = *(ExtensionType*)&in[offset];
+    offset += sizeof(ExtensionType);
+
+    int16_t len;
+    len = *(int16_t*)&in[offset];
+    offset += sizeof(int16_t);
+
+    data = in.substr(offset, len);
+ }

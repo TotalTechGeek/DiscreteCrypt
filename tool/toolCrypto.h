@@ -30,15 +30,23 @@ std::string getScrypt(const std::string& password, const std::string& salt, int 
     return result;
 }
 
-
 #if defined(_WIN32) || defined(_WIN64)
-
 #include <conio.h>
+#include <stdio.h>
+#include <io.h>
 
 // Works on Windows with Mingw32_64
 std::string getPassword()
 {
     std::string result;
+
+    // For Pipes
+    if(!_isatty(_fileno(stdin)))
+    {
+        getline(std::cin, result);
+        return result;
+    }
+
     char c; 
 
     while((c=_getch()) != 13)
@@ -93,10 +101,19 @@ int getch()
 std::string getPassword()
 {
     using namespace std;
+    string password;
+    
+    // For Pipes
+    if(!isatty(fileno(stdin)))
+    {
+        getline(cin, password);
+        return password;
+    }
+
+
     const char BACKSPACE = 127;
     const char RETURN = 10;
 
-    string password;
     unsigned char ch = 0;
 
 
@@ -122,11 +139,15 @@ std::string getPassword()
 }
 #endif
 
+
 std::string intToScrypt(const CryptoPP::Integer& i, const ScryptParameters& sp, int keyLen, const FileProperties& fp)
 {
-    unsigned char* dub1Out = new unsigned char[i.ByteCount()];
+    unsigned char* dub1Out = new unsigned char[i.ByteCount()]();
     i.Encode(dub1Out, i.ByteCount());
-    return getScrypt((char*)dub1Out, fp.hash, sp.N, sp.P, sp.R, keyLen);
+    std::string pass("");
+    pass.append((char*)dub1Out, i.ByteCount());
+    delete[] dub1Out;
+    return getScrypt(pass, fp.hash, sp.N, sp.P, sp.R, keyLen);
 }
 
 CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp)
@@ -143,7 +164,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     password = getPassword();
 
     const int SALT_SIZE = 32;
-    char* saltC = new char[SALT_SIZE];
+    char* saltC = new char[SALT_SIZE]();
 
     if(password == "")
     {
@@ -158,15 +179,53 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
     
     std::string salt;
-    salt.append(saltC);
+    salt.append(saltC, SALT_SIZE);
     delete[] saltC;
 
     CryptoPP::Integer priv;
-    priv.Decode((unsigned char*)getScrypt(password, salt, sp.N, sp.P, sp.R, sp.len).c_str(), sp.len);
+    std::string scr = getScrypt(password, salt, sp.N, sp.P, sp.R, sp.len);
+    priv.Decode((unsigned char*)scr.c_str(), scr.length());
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
     PersonParameters p(identity, salt, pub);
     
+    con.person = p;
+    con.sp = sp;
+    con.dh = dh;
+
+    return priv; 
+}
+
+CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp, const std::string& identity, std::string& password)
+{
+    using namespace std;
+  
+
+    const int SALT_SIZE = 32;
+    char* saltC = new char[SALT_SIZE]();
+
+    if(password == "")
+    {
+        CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+        for(int i = 0; i < SALT_SIZE; i++)
+        {
+            password += PWD[saltC[i] % (sizeof(PWD)-1)];
+        }
+        cout << "Using Password: " << password << endl;
+    }
+
+    CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+    
+    std::string salt;
+    salt.append(saltC, SALT_SIZE);
+    delete[] saltC;
+
+    CryptoPP::Integer priv;
+    std::string scrypt = getScrypt(password, salt, sp.N, sp.P, sp.R, sp.len);
+    priv.Decode((unsigned char*)scrypt.c_str(), scrypt.length());
+    CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
+
+    PersonParameters p(identity, salt, pub);
     con.person = p;
     con.sp = sp;
     con.dh = dh;
@@ -286,10 +345,12 @@ void decodeFile(T& c, const std::string& fileName)
     fi.close();
 }
 
-void decodeEncrypted(Exchange& ex, FileProperties& fp, const std::string& fileName)
+void decodeEncrypted(std::vector<Exchange>& exchanges, std::vector<DataExtension>& extensions, FileProperties& fp, const std::string& fileName)
 {
     using namespace std;
     ifstream fi(fileName, ios::binary);
+    Exchange ex;
+    DataExtension de;
     
     if(fi.good())
     {
@@ -309,24 +370,46 @@ void decodeEncrypted(Exchange& ex, FileProperties& fp, const std::string& fileNa
         fp.parse(s);
         delete[] block;
 
-        // Get the size of the ex
-        fi.read(in, sizeof(int16_t));
-        len = *(int16_t*)in;
+        // Reads in all the exchanges.
+        for(int i = 0; i < fp.recipients; i++)
+        {
+            // Get the size of the ex
+            fi.read(in, sizeof(int16_t));
+            len = *(int16_t*)in;
 
-        // Read in the Exchange
-        block = new char[len];
-        fi.read(block, len);
-        s = "";
-        s.append(block, len);
-        ex.parse(s);
-        delete[] block;
+            // Read in the Exchange
+            block = new char[len];
+            fi.read(block, len);
+            s = "";
+            s.append(block, len);
+            ex.parse(s);
+            exchanges.push_back(ex);
+            delete[] block;
+        }
+
+        // Reads in all the extensions.
+        for(int i = 0; i < fp.extensions; i++)
+        {
+            // Get the size of the ex
+            fi.read(in, sizeof(int16_t));
+            len = *(int16_t*)in;
+
+            // Read in the Exchange
+            block = new char[len];
+            fi.read(block, len);
+            s = "";
+            s.append(block, len);
+            de.parse(s);
+            extensions.push_back(de);
+            delete[] block;
+        }
+        
         delete[] in;
         
     }
 
     fi.close();
 }
-
 
 std::string hashPad(std::string hash, int blockSize)
 {
@@ -407,10 +490,38 @@ void hmacFile(const std::string& filename, FileProperties& fp)
 }
 
 
-void encryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, const FileProperties& fp, const unsigned char* key)
+// The functionality is thought out, it's just not properly implemented.
+// The good news is that this is supported now, which means that when the behavior is implemented, 
+// older versions won't be negatively affected by its addition.
+DataExtension symmetricSign(const FileProperties& fp, const std::string& password)
+{
+    using namespace cppcrypto;
+    unsigned char* hash;
+    crypto_hash* bc;
+    
+    getHash(fp.ht, bc);
+
+    hash = new unsigned char[bc->hashsize() / 8]();
+
+    hmac mac(*bc, password);
+    mac.init();
+
+    mac.update((unsigned char*)fp.hash.c_str(), fp.hash.length());
+    mac.final(hash);
+
+    DataExtension result;
+    result.data.append((char*)hash, bc->hashsize() / 8);
+
+    result.et = ExtensionType::SYMMETRIC;
+    return result;
+}
+
+
+void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password)
 {
     using namespace std;
     using namespace cppcrypto;
+    using CryptoPP::Integer;
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
@@ -428,43 +539,75 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     fo.write((char*)&len, sizeof(int16_t));
     fo.write(&output[0], len);
 
-    output = ex.out();
-    len = (int16_t)output.length();
+   
+    std::string anon("Anonymous");
+    // Bad code, in need of refactoring.
+    vector<Exchange> exchanges; 
+    for(int i = 0; i < recipients.size(); i++)
+    {
+        Contact sender; 
+        Integer priv = createContact(sender, recipients[i].dh, recipients[i].sp, anon, password);
+        Integer p = a_exp_b_mod_c(recipients[i].person.publicKey, priv, recipients[i].dh.mod());
+        Exchange ex(recipients[i].person, sender.person, recipients[i].sp, fp.cp, recipients[i].dh);
+        ex.computed = p;
+        exchanges.push_back(ex);
+    }
+    
+    // Writes each of the exchanges.
+    for(int i = 0; i < exchanges.size(); i++)
+    {
+        output = exchanges[i].out();
+        len = (int16_t)output.length();
+
+        // Write the exchange (EX)
+        fo.write((char*)&len, sizeof(int16_t));
+        fo.write(&output[0], len);
+    }
 
 
-    // Write the exchange (EX)
-    fo.write((char*)&len, sizeof(int16_t));
-    fo.write(&output[0], len);
+    // Writes each of the extensions
+    for(int i = 0; i < extensions.size(); i++)
+    {
+        output = extensions[i].out();
+        len = (int16_t)output.length();
 
-
+        // Write the extensions
+        fo.write((char*)&len, sizeof(int16_t));
+        fo.write(&output[0], len);
+    }
+    
     
     // Using the file's hash at the moment.
     std::string h = fp.hash;
     while(h.length() > blocksize) h.pop_back();
     unsigned char* iv = (unsigned char*)&h[0];
 
-
-    ctr c(*bc);
-    c.init(key, keysize, iv, blocksize);
-    
-    
     int k = keysize + (blocksize - keysize % blocksize);
-    
-    unsigned char* ikey = (unsigned char*)&fp.key[0], *okey = new unsigned char[k];
-    // fi.read((char*)ikey, keysize);
+    unsigned char* ikey = (unsigned char*)&fp.key[0];
 
-    for(int i = 0; i < keysize; i += blocksize)
+    for(int i = 0; i < exchanges.size(); i++)
     {
-        c.encrypt(ikey + i, blocksize, okey + i);
+        string scr = intToScrypt(exchanges[i].computed, exchanges[i].sp, getCipherKeySize(fp.cp.cipherType), fp);
+        const unsigned char* key = (unsigned char*)scr.c_str();
+
+        ctr c(*bc);
+        c.init(key, keysize, iv, blocksize);
+    
+        unsigned char *okey = new unsigned char[k]();
+
+        for(int i = 0; i < keysize; i += blocksize)
+        {
+            c.encrypt(ikey + i, blocksize, okey + i);
+        }
+
+        fo.write((char*)okey, keysize);
+
+        delete bc;
+        getCipher(fp.cp.cipherType, bc);
+        delete[] okey;
     }
-
-    fo.write((char*)okey, keysize);
-
-
-    delete bc;
-
+    
     // Use the Key.
-    getCipher(fp.cp.cipherType, bc);
     ctr c2(*bc);
     c2.init(ikey, keysize, iv, blocksize);
     
@@ -499,7 +642,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     }
 
     delete bc;
-    delete[] okey;
     delete[] inBuf;
     delete[] outBuf;
     fi.close();
@@ -507,10 +649,11 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 }
 
 
-char decryptFile(const std::string& fileName, const std::string& outputFile, const Exchange& ex, const FileProperties& fp, const unsigned char* key)
+char decryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, const FileProperties& fp, const std::string& password, int person = 0)
 {
     using namespace std;
     using namespace cppcrypto;
+    using CryptoPP::Integer;
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
@@ -531,20 +674,34 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     fsize -= len;
     fsize -= sizeof(int16_t);
     
-    // Skip the exchange
-    fi.read(lenRead, sizeof(int16_t));
-    len = *(int16_t*)lenRead;
-    fi.ignore(len);
+    // Skip the exchanges
+    for(int i = 0; i < exchanges.size(); i++)
+    {
+        fi.read(lenRead, sizeof(int16_t));
+        len = *(int16_t*)lenRead;
+        fi.ignore(len);
 
-    fsize -= len;
-    fsize -= sizeof(int16_t);
+        fsize -= len;
+        fsize -= sizeof(int16_t);
+    }
+    
+    // Skips the extensions.
+    for(int i = 0; i < fp.extensions; i++)
+    {
+        fi.read(lenRead, sizeof(int16_t));
+        len = *(int16_t*)lenRead;
+        fi.ignore(len);
+
+        fsize -= len;
+        fsize -= sizeof(int16_t);
+    }
+
     delete[] lenRead;
 
     block_cipher *bc;
     crypto_hash *hc; 
     getHash(fp.ht, hc);
     getCipher(fp.cp.cipherType, bc);
-
 
     unsigned char* hash = new unsigned char[hc->hashsize() / 8];
     
@@ -559,14 +716,46 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
+    
+    int k = keysize + (blocksize - keysize % blocksize);
+    
+    unsigned char* ikey = new unsigned char[k](), *okey = new unsigned char[k]();
+
+    Exchange ex = exchanges[person/2];
+    Integer pub; 
+    string salt;
+    if(person & 1)
+    {
+        // Bob
+        salt = ex.bob.salt;
+        pub = ex.alice.publicKey;
+    }
+    else
+    {
+        // Alice
+        salt = ex.alice.salt;
+        pub = ex.bob.publicKey;
+    }
+
+    Integer priv;
+    string scr = getScrypt(password, salt, ex.sp.N, ex.sp.P, ex.sp.R, ex.sp.len);
+    priv.Decode((unsigned char*)scr.c_str(), ex.sp.len);
+
+    Integer p = a_exp_b_mod_c(pub, priv, ex.dh.mod());
+    scr = intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp);
+    unsigned char* key = (unsigned char*)scr.c_str();
+
     ctr c(*bc);
     c.init(key, keysize, iv, blocksize);
 
-    int k = keysize + (blocksize - keysize % blocksize);
-    
-    unsigned char* ikey = new unsigned char[k], *okey = new unsigned char[k];
-    fi.read((char*)ikey, keysize);
-    fsize -= keysize;
+
+    // This will be the difficult part.
+    for(int i = 0; i < exchanges.size(); i++)
+    {
+        if(i == (person/2)) fi.read((char*)ikey, keysize);
+        else fi.ignore(keysize);
+        fsize -= keysize;
+    }
 
     for(int i = 0; i < keysize; i += blocksize)
     {

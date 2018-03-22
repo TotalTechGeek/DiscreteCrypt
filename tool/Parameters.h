@@ -2,6 +2,8 @@
 #include "../cryptopp/integer.h"
 #include <string>
 
+#define DISCRETECRYPT_VERSION 2
+
 class DHParameters
 {
     private:
@@ -115,6 +117,13 @@ const char* const AVAILABLE_HASHES[] = {
     HASH_ENUM(MAKE_STRING_ARRAY)
 };
 
+enum ExtensionType : uint8_t
+{
+    CUSTOM,
+    SYMMETRIC,
+    ASYMMETRIC
+};
+
 enum CipherType : int16_t
 {
     CIPHER_ENUM(MAKE_ENUM)               
@@ -192,8 +201,9 @@ struct Contact
 // This goes at the beginning of every encrypted file.
 struct FileProperties
 {
-    char version = 1;
+    char version = DISCRETECRYPT_VERSION;
     int16_t recipients = 1;
+    int16_t extensions = 0;
     CipherParams cp;
     HashType ht;
     std::string hash;
@@ -212,6 +222,8 @@ struct Exchange
     PersonParameters alice, bob;
     ScryptParameters sp;
     DHParameters dh;
+    
+    CryptoPP::Integer computed;
 
     Exchange();
     Exchange(const Exchange& ex);
@@ -223,3 +235,11 @@ struct Exchange
     std::string out() const;
 };
 
+
+struct DataExtension 
+{
+    ExtensionType et = CUSTOM;
+    std::string data = "";
+    std::string out() const;
+    void parse(const std::string& in, int offset = 0);
+};

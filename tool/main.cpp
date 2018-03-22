@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <string.h>
+#include <sstream>
 #include <assert.h>
 
 #include "../cryptopp/osrng.h"
@@ -14,6 +15,54 @@
 #include "toolCrypto.h"
 
 using namespace std;
+
+
+namespace StringSplitFunctions
+{
+	//Not the most efficient but decent implementations for a competitition.
+
+	//Replaces part of the string with another string.
+	//Pass in the original, and the delimiter.
+	//Replaces delimiter with the 'replaceWith' parameter.
+	void replacePart(string& original, string delim, string replaceWith)
+	{
+		while (original.find(delim) != -1)
+		{
+			original.replace(original.find(delim), delim.size(), replaceWith);
+		}
+	}
+
+
+	//splits the string and puts it in a vector to be returned :).
+	//using this to split up the commas on the lines.
+	void splitString(vector<string>& returner, string str, string delim, char op = 0)
+	{
+		string op2("");
+		op2 += op;
+		replacePart(str, delim, op2);
+		istringstream stream(str);
+
+		while (stream)
+		{
+			string n;
+
+			getline(stream, n, op);
+
+			if (n.size() == 0 || (n[0] == 0 && n.size() == 1)) //avoids returning empty strings.
+			{
+				//nothing
+			}
+			else
+			{
+				//something.
+				returner.push_back(n);
+			}
+		}
+
+
+	}
+}
+
 
 // Ignore this rambling. These are just notes to myself. //
 // I'll keep things somewhat ephemeral. Each person can specify a preferred method of contact, or use the current session to reply, 
@@ -93,7 +142,7 @@ int main()
         }
         else if(command == "hash")
         {
-            cout << "Cipher Mode: ";
+            cout << "Hash Mode: ";
             getline(cin, command);
             h = (HashType)stoi(command, 0, 8);
             cout << getHashName(h) << endl;
@@ -104,36 +153,44 @@ int main()
             {
                 cout << AVAILABLE_HASHES[i] << " - " << std::oct << AVAILABLE_HASHES_CODES[i] << endl;
                 cout << std::dec;
-            }
-            
+            }   
         }
         else if(command == "to")
         {
             string file;
             cout << "Contact File: ";
             getline(cin, command);
-            command.append(".contact");
             
-            Contact recipient, sender;
+            vector<Contact> recipients;
+            vector<DataExtension> extensions;
+            vector<string> recipients_s;
 
-            decodeFile(recipient, command);
+            StringSplitFunctions::splitString(recipients_s, command, ",");
 
-            Integer priv = createContact(sender, recipient.dh, recipient.sp);
+            for(int i = 0; i < recipients_s.size(); i++)
+            {
+                Contact recipient;
+                recipients_s[i].append(".contact");
+                decodeFile(recipient, recipients_s[i]);
+                recipients.push_back(recipient);
+            }
 
             cout << "To Send: ";
             getline(cin, file);
 
             FileProperties fp(cp, h);
-
+           
             hmacFile(file, fp);
 
             cout << "Out File: ";
             getline(cin, command);
 
-            Integer p = a_exp_b_mod_c(recipient.person.publicKey, priv, recipient.dh.mod());
-            Exchange ex(recipient.person, sender.person, recipient.sp, cp, recipient.dh);
+            string password("");
+    
+            fp.recipients = recipients.size();
+            fp.extensions = extensions.size();
             
-            encryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp).c_str());
+            encryptFile(file, command, recipients, extensions, fp, password);
         }
         // allows you to specify the DH Params for creating contacts.
         else if(command == "dh")
@@ -231,11 +288,24 @@ int main()
             getline(cin, command);
             Exchange ex;
             FileProperties fp(cp, h);
+            vector<Exchange> exchanges;
+            vector<DataExtension> extensions;
+            decodeEncrypted(exchanges, extensions, fp, command);
 
-            decodeEncrypted(ex, fp, command);
+            cout << "File Format Version: " << (int)fp.version << endl << endl;
+            cout << "People: " << endl;
+            for(int i = 0; i < exchanges.size(); i++)
+            {
+                cout << exchanges[i].alice.identity << " (0x" << exchanges[i].alice.saltHex() << ")" << endl
+                << exchanges[i].bob.identity << " (0x" << exchanges[i].bob.saltHex() << ")" << endl;
+            }
+            cout << endl;
 
-            cout << ex.alice.identity << endl << ex.bob.identity << endl;
-            cout << (int)fp.cp.cipherType << endl << getCipherName(fp.cp.cipherType) << endl;
+            cout << "Cipher: " << getCipherName(fp.cp.cipherType) << endl << "Hash: " << getHashName(fp.ht) << endl << endl;
+            
+
+            cout << "Extension count: " << fp.extensions << endl;
+            
         }
         // prints out the contact info.
         else if(command == "pc")
@@ -264,9 +334,18 @@ int main()
             
             Exchange ex;
             FileProperties fp(cp, h);
-            decodeEncrypted(ex, fp, command);
+            vector<Exchange> exchanges;
+            vector<DataExtension> extensions;
+            decodeEncrypted(exchanges, extensions, fp, command);
             
-            dh = ex.dh;
+            for(int i = 0; i < exchanges.size(); i++)
+            {
+                cout << (i+1) << ") " << exchanges[i].dh.mod() << " (" << exchanges[i].dh.mod().BitCount() << ")" << endl; 
+            }
+
+            getline(cin, command);
+
+            dh = exchanges[stoi(command) - 1].dh;
         }
         // extracts a contact from an encrypted file
         else if(command == "exc")
@@ -274,27 +353,35 @@ int main()
 
             cout << "In File: ";
             getline(cin, command);
-            Exchange ex;
+            vector<Exchange> exchanges;
+            vector<DataExtension> extensions;
             FileProperties fp(cp, h);
 
-            decodeEncrypted(ex, fp, command);
+            decodeEncrypted(exchanges, extensions, fp, command);
+            Exchange ex;
             
-            cout << "1) " << ex.alice.identity << endl << "2) " << ex.bob.identity << endl;
+             for(int i = 0; i < exchanges.size(); i++)
+            {
+                ex = exchanges[i];
+                cout << (i*2+1) << ") " << ex.alice.identity << endl << (i*2+2) << ") " << ex.bob.identity << endl;
+            }
 
             getline(cin, command);
-
+            int person = stoi(command) - 1;
+            ex = exchanges[person/2];
             Contact c;
+
             c.dh = ex.dh;
             c.sp = ex.sp;
-            if(command == "1")
+
+            if(person & 1)
             {
-                c.person = ex.alice;    
+                c.person = ex.bob;    
             }
             else
             {
-                c.person = ex.bob;
+                c.person = ex.alice;
             }
-
 
             cout << "Out File: ";
             getline(cin, command);
@@ -330,39 +417,34 @@ int main()
         }
         else if(command == "open" || command == "o")
         {
-            string salt, file;
+            string file, password;
+            int person;
             cout << "In File: ";
             getline(cin, file);
             
             Exchange ex;
             FileProperties fp(cp, h);
-            decodeEncrypted(ex, fp, file);
 
-            cout << "1) " << ex.alice.identity << endl << "2) " << ex.bob.identity << endl;
+            vector<Exchange> exchanges;
+            vector<DataExtension> extensions;
+            decodeEncrypted(exchanges, extensions, fp, file);
+
+            for(int i = 0; i < exchanges.size(); i++)
+            {
+                ex = exchanges[i];
+                cout << (i*2+1) << ") " << ex.alice.identity << endl << (i*2+2) << ") " << ex.bob.identity << endl;
+            }
             getline(cin, command);
 
-            Integer pub;
-            if(command == "1")
-            {
-                salt = ex.alice.salt;
-                pub = ex.bob.publicKey;
-            }
-            else
-            {
-                salt = ex.bob.salt;
-                pub = ex.alice.publicKey;
-            }
+            person = stoi(command) - 1;
 
             cout << "Password: ";
-            command = getPassword();
-
-            Integer priv;
-            priv.Decode((unsigned char*)getScrypt(command, salt, ex.sp.N, ex.sp.P, ex.sp.R, ex.sp.len).c_str(), ex.sp.len);
-            Integer p = a_exp_b_mod_c(pub, priv, ex.dh.mod());
+            password = getPassword();
 
             cout << "Out File: ";
             getline(cin, command);
-            cout << (decryptFile(file, command, ex, fp, (unsigned char*)intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp).c_str()) ? "Success" : "Fail") << endl;
+
+            cout << (decryptFile(file, command, exchanges, fp, password, person) ? "Success" : "Fail") << endl;
         }
         else
         {
