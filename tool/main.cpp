@@ -108,6 +108,10 @@ int main()
 
             cout << "ciph" << "\t\t" << "Sets a cipher used." << endl;
             cout << "ciphlist" << "\t" << "Prints out all the ciphers available." << endl;
+
+            cout << "hash" << "\t\t" << "Sets the hash used." << endl;
+            cout << "hashlist" << "\t" << "Prints out all the hash functions available." << endl;
+
             cout << "dh" << "\t\t" << "Lets you set Discrete Log Parameters." << endl;
             cout << "ldh" << "\t\t" << "Loads discrete log parameters from a file." << endl;
             cout << "sdh" << "\t\t" << "Saves discrete log parameters to a file." << endl;
@@ -147,7 +151,7 @@ int main()
             h = (HashType)stoi(command, 0, 8);
             cout << getHashName(h) << endl;
         }
-        else if(command == "hashList")
+        else if(command == "hashlist")
         {
             for(int i = 0; i < sizeof(AVAILABLE_HASHES_CODES) / sizeof(uint16_t); i++)
             {
