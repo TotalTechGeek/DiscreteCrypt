@@ -168,7 +168,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
 
     if(password == "")
     {
-        CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+        CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
         for(int i = 0; i < SALT_SIZE; i++)
         {
             password += PWD[saltC[i] % (sizeof(PWD)-1)];
@@ -176,7 +176,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
         cout << "Using Password: " << password << endl;
     }
 
-    CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+    CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
     
     std::string salt;
     salt.append(saltC, SALT_SIZE);
@@ -206,7 +206,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
 
     if(password == "")
     {
-        CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+        CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
         for(int i = 0; i < SALT_SIZE; i++)
         {
             password += PWD[saltC[i] % (sizeof(PWD)-1)];
@@ -214,7 +214,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
         cout << "Using Password: " << password << endl;
     }
 
-    CryptoPP::OS_GenerateRandomBlock(true, (unsigned char*)saltC, SALT_SIZE);
+    CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
     
     std::string salt;
     salt.append(saltC, SALT_SIZE);
@@ -398,7 +398,7 @@ std::string hashPad(std::string hash, int blockSize)
     if(hash.length() < blockSize)
     {
         unsigned char *c = new unsigned char[blockSize - hash.length()]();
-        CryptoPP::OS_GenerateRandomBlock(true, c, blockSize - hash.length());
+        CryptoPP::OS_GenerateRandomBlock(false, c, blockSize - hash.length());
         hash.append((char*)c, blockSize - hash.length());
         delete[] c;
     }
@@ -412,7 +412,7 @@ void createFileKey(FileProperties& fp)
     int keySize = getCipherKeySize(fp.cp.cipherType) / 8;
     int blockSize = getCipherBlockSize(fp.cp.cipherType) / 8;
     unsigned char *key = new unsigned char[keySize];
-    CryptoPP::OS_GenerateRandomBlock(true, key, keySize);
+    CryptoPP::OS_GenerateRandomBlock(false, key, keySize);
     fp.key = "";
     fp.key.append((char*)key, keySize);
     delete[] key;
