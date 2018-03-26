@@ -1,5 +1,7 @@
 #include "Parameters.h"
 
+#include "../cppcrypto/cppcrypto/cppcrypto.h"
+
 // Eventually we'll break this into separate files. 
 
 DHParameters::DHParameters() : modulus("0"), generator("0")

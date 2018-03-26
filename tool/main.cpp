@@ -11,11 +11,11 @@
 #include "../cryptopp/integer.h"
 #include "../cryptopp/nbtheory.h"
 
+#include "SymmetricAuthenticationExtension.h"
 #include "Parameters.h"
 #include "toolCrypto.h"
 
 using namespace std;
-
 
 namespace StringSplitFunctions
 {
@@ -168,7 +168,7 @@ int main()
             vector<Contact> recipients;
             vector<DataExtension> extensions;
             vector<string> recipients_s;
-            
+
             StringSplitFunctions::splitString(recipients_s, command, ",");
 
             for(int i = 0; i < recipients_s.size(); i++)
@@ -419,7 +419,7 @@ int main()
         }
         else if(command == "open" || command == "o")
         {
-            string file, password;
+            string file, password, ofile;
             int person;
             cout << "In File: ";
             getline(cin, file);
@@ -429,6 +429,7 @@ int main()
 
             vector<Exchange> exchanges;
             vector<DataExtension> extensions;
+
             decodeEncrypted(exchanges, fp, file);
 
             for(int i = 0; i < exchanges.size(); i++)
@@ -444,9 +445,27 @@ int main()
             password = getPassword();
 
             cout << "Out File: ";
-            getline(cin, command);
+            getline(cin, ofile);
 
-            cout << (decryptFile(file, command, exchanges, extensions, fp, password, person) ? "Success" : "Fail") << endl;
+            bool success = decryptFile(file, ofile, exchanges, extensions, fp, password, person);
+
+            cout << (success ? "Success" : "Fail") << endl;
+
+            if(success)
+            {
+                cout << "=== Symmetric Authentication ===" << endl;
+                for(int i = 0; i < extensions.size(); i++)
+                {
+                    if(extensions[i].et == ExtensionType::SYMMETRIC)
+                    {
+                        SymmetricAuthenticationExtension sae(extensions[i]);
+                        cout << sae.prompt() << endl;
+                        getline(cin, command);
+                        cout << (sae.check(command, ofile, fp.ht) ? "Success" : "Fail") << endl;                 
+                    }
+                }
+                cout << "=== End Symmetric Authentication ===" << endl;
+            }
         }
         else
         {
