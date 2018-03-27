@@ -334,6 +334,37 @@ void sign(ProgramParams& programParams, const string& from, const string& file, 
     }
 }
 
+void extractContact(ProgramParams& programParams, const string& in, const string& out)
+{
+    string command;
+
+    vector<Exchange> exchanges;
+    FileProperties fp(programParams.cp, programParams.h);
+    decodeEncrypted(exchanges, fp, in);
+    Exchange ex;
+    
+    for(int i = 0; i < exchanges.size(); i++)
+    {
+        ex = exchanges[i];
+        cout    << (i*2+1) << ") " << ex.alice.identity << " (0x" << ex.aliceContact().uidHex() << ")" << endl 
+                << (i*2+2) << ") " << ex.bob.identity << " (0x" << ex.bobContact().uidHex() << ")" << endl;
+    }
+
+    getline(cin, command);
+    int person = stoi(command) - 1;
+    ex = exchanges[person/2];
+    Contact c;
+    if(person & 1)
+    {
+        c = ex.bobContact();  
+    }
+    else
+    {
+        c = ex.aliceContact();
+    }
+    encodeFile(c, out);
+}
+
 void ciph(ProgramParams& programParams, const string& ciph)
 {
     programParams.cp.cipherType = (CipherType)stoi(ciph, 0, 8);
@@ -364,6 +395,41 @@ void checkContact(ProgramParams& programParams, const string& contactFile)
     string password = getPassword();
     bool verified = con.verify(password);
     cout << (verified ? "Verified" : "Not Verified")  << endl;
+}
+
+DHParameters extractDHParameters_e(const string& file)
+{
+    string command;
+    
+    FileProperties fp(CipherParams(), HashType::SHA256);
+    vector<Exchange> exchanges;
+    decodeEncrypted(exchanges, fp, file);
+                
+    for(int i = 0; i < exchanges.size(); i++)
+    {
+        cout << (i+1) << ") " << exchanges[i].dh.mod() << " (" << exchanges[i].dh.mod().BitCount() << ")" << endl; 
+    }
+
+    getline(cin, command);
+
+    return exchanges[stoi(command) - 1].dh;
+}
+
+DHParameters extractDHParameters_c(const string& file)
+{
+    Contact con;
+    decodeFile(con, file);
+    return con.dh;
+}
+
+void pdh(const DHParameters & dh)
+{
+    Integer pohlig, factors;
+    cout << dh.gen() << endl << endl;
+    cout << dh.mod() << " (" << dh.mod().BitCount() << ")" << endl;
+    cout << endl;
+    tie(pohlig, factors) = dh.pohlig();
+    cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
 }
 
 // The identity field will eventually use JSON.
@@ -405,6 +471,12 @@ int main(int argc, char**args)
                 {
                     contact(programParams, args[++i]);
                 }
+                else if(cur == "exc")
+                {
+                    string in = args[++i];
+                    string out = args[++i];
+                    extractContact(programParams, in, out);
+                }
                 else if(cur == "to")
                 {
                     string con = args[++i];
@@ -428,6 +500,20 @@ int main(int argc, char**args)
                     string ofile = args[++i];
 
                     open(programParams, file, ofile);
+                }
+                else if(cur == "exdhc")
+                {
+                    string file = args[++i];
+                    string ofile = args[++i];
+                    DHParameters dh = extractDHParameters_c(file);
+                    encodeFile(dh, ofile);
+                }
+                else if(cur == "exdhe")
+                {
+                    string file = args[++i];
+                    string ofile = args[++i];
+                    DHParameters dh = extractDHParameters_e(file);
+                    encodeFile(dh, ofile);
                 }
                 else if(cur == "sign")
                 {
@@ -453,6 +539,16 @@ int main(int argc, char**args)
                 else if(cur == "check")
                 {
                     checkContact(programParams, args[++i]);
+                }
+                else if(cur == "pdh")
+                {
+                    pdh(programParams.dh);
+                }
+                else if(cur == "pldh")
+                {
+                    DHParameters dh;
+                    decodeFile(dh, args[++i]);
+                    pdh(dh);
                 }
             }
         }
@@ -567,19 +663,7 @@ int main(int argc, char**args)
             }
             else if(command == "pdh")
             {
-                cout << programParams.dh.gen() << endl << endl;
-                cout << programParams.dh.mod() << " (" << programParams.dh.mod().BitCount() << ")" << endl;
-            }
-            else if(command == "pdh2")
-            {
-                Integer m = programParams.dh.mod() - 1;
-                for(int i = 2; i < 65536; i++)
-                {
-                    while(!(m % i) && (m != i)) m /= i;
-                }
-
-                cout << programParams.dh.gen() << endl << endl;
-                cout << m << " (" << m.BitCount() << ")" << endl;
+                pdh(programParams.dh);
             }
             else if(command == "dhtest")
             {
@@ -630,58 +714,22 @@ int main(int argc, char**args)
             {
                 cout << "In File: ";
                 getline(cin, command);
-                
-                Exchange ex;
-                FileProperties fp(programParams.cp, programParams.h);
-                vector<Exchange> exchanges;
-                decodeEncrypted(exchanges, fp, command);
-                
-                for(int i = 0; i < exchanges.size(); i++)
-                {
-                    cout << (i+1) << ") " << exchanges[i].dh.mod() << " (" << exchanges[i].dh.mod().BitCount() << ")" << endl; 
-                }
-
-                getline(cin, command);
-
-                programParams.dh = exchanges[stoi(command) - 1].dh;
+               
+                programParams.dh = extractDHParameters_e(command);
             }
             // extracts a contact from an encrypted file
             else if(command == "exc")
             {
+                string in, out;
                 cout << "In File: ";
-                getline(cin, command);
-                vector<Exchange> exchanges;
-                FileProperties fp(programParams.cp, programParams.h);
-
-                decodeEncrypted(exchanges, fp, command);
-                Exchange ex;
+                getline(cin, in);
                 
-                for(int i = 0; i < exchanges.size(); i++)
-                {
-                    ex = exchanges[i];
-                    cout    << (i*2+1) << ") " << ex.alice.identity << " (0x" << ex.aliceContact().uidHex() << ")" << endl 
-                            << (i*2+2) << ") " << ex.bob.identity << " (0x" << ex.bobContact().uidHex() << ")" << endl;
-                }
-
-                getline(cin, command);
-                int person = stoi(command) - 1;
-                ex = exchanges[person/2];
-                Contact c;
-
-                if(person & 1)
-                {
-                    c = ex.bobContact();  
-                }
-                else
-                {
-                    c = ex.aliceContact();
-                }
 
                 cout << "Out File: ";
-                getline(cin, command);
-                command.append(".contact");
+                getline(cin, out);
+                out.append(".contact");
 
-                encodeFile(c, command);
+                extractContact(programParams, in, out);
             }
             else if(command == "check")
             {
