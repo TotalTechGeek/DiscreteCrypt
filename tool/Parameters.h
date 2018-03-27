@@ -2,6 +2,7 @@
 #include "../cryptopp/integer.h"
 #include <string>
 
+#include <tuple>
 #define DISCRETECRYPT_VERSION 2
 
 class DHParameters
@@ -23,6 +24,9 @@ class DHParameters
     void mod(CryptoPP::Integer x);
     CryptoPP::Integer gen() const;
     void gen(CryptoPP::Integer x);
+
+    std::tuple<CryptoPP::Integer, CryptoPP::Integer> pohlig() const;
+    
 
     // Currently a very dumb hack.
     std::string out() const;
@@ -195,6 +199,9 @@ struct Contact
     Contact(const std::string& in, int offset = 0);
     void parse(const std::string& in, int offset = 0);
     std::string out() const;
+    std::string uid(HashType ht = HashType::SHA256) const;
+    std::string uidHex(HashType ht = HashType::SHA256) const;
+    bool verify(std::string pass) const;
 };
 
 

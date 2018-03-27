@@ -149,6 +149,33 @@ std::string intToScrypt(const CryptoPP::Integer& i, const ScryptParameters& sp, 
     return getScrypt(pass, fp.hash, sp.N, sp.P, sp.R, keyLen);
 }
 
+std::string cryptoIntToString(const CryptoPP::Integer& n)
+{
+    unsigned char* buf = new unsigned char[n.ByteCount()];
+    n.Encode(buf, n.ByteCount());
+    std::string res;
+    res.append((char*)buf, n.ByteCount());
+    delete[] buf;
+    return res;
+}
+
+
+CryptoPP::Integer stringToCryptoInt(const std::string& s)
+{
+    CryptoPP::Integer res;
+    res.Decode((unsigned char*)&s[0], s.length());
+    return res;
+}
+
+CryptoPP::Integer passwordToPrivate(const std::string& pass, const std::string& salt, const ScryptParameters& sp)
+{   
+    std::string scr = getScrypt(pass, salt, sp.N, sp.P, sp.R, sp.len);
+    CryptoPP::Integer priv;
+    priv.Decode((unsigned char*)scr.c_str(), scr.length());
+    return priv;
+}
+    
+
 CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp)
 {
     using namespace std;
@@ -225,6 +252,24 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
     PersonParameters p(identity, salt, pub);
+    con.person = p;
+    con.sp = sp;
+    con.dh = dh;
+
+    return priv; 
+}
+
+
+CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp, Contact* contact, std::string& password)
+{
+    using namespace std;
+  
+    CryptoPP::Integer priv;
+    std::string scrypt = getScrypt(password, contact->person.salt, sp.N, sp.P, sp.R, sp.len);
+    priv.Decode((unsigned char*)scrypt.c_str(), scrypt.length());
+    CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
+
+    PersonParameters p(contact->person.identity, contact->person.salt, pub);
     con.person = p;
     con.sp = sp;
     con.dh = dh;
@@ -520,7 +565,7 @@ DataExtension symmetricSign(const FileProperties& fp, const std::string& passwor
 }
 
 
-void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password)
+void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password, Contact* con)
 {
     using namespace std;
     using namespace cppcrypto;
@@ -542,18 +587,33 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     fo.write((char*)&len, sizeof(int16_t));
     fo.write(&output[0], len);
 
-   
-    std::string anon("Anonymous");
-    // Bad code, in need of refactoring.
     vector<Exchange> exchanges; 
-    for(int i = 0; i < recipients.size(); i++)
+        
+    // Bad code, in need of refactoring.   
+    if(!con)
     {
-        Contact sender; 
-        Integer priv = createContact(sender, recipients[i].dh, recipients[i].sp, anon, password);
-        Integer p = a_exp_b_mod_c(recipients[i].person.publicKey, priv, recipients[i].dh.mod());
-        Exchange ex(recipients[i].person, sender.person, recipients[i].sp, fp.cp, recipients[i].dh);
-        ex.computed = p;
-        exchanges.push_back(ex);
+        std::string anon("Anonymous");
+        for(int i = 0; i < recipients.size(); i++)
+        {
+            Contact sender; 
+            Integer priv = createContact(sender, recipients[i].dh, recipients[i].sp, anon, password);
+            Integer p = a_exp_b_mod_c(recipients[i].person.publicKey, priv, recipients[i].dh.mod());
+            Exchange ex(recipients[i].person, sender.person, recipients[i].sp, fp.cp, recipients[i].dh);
+            ex.computed = p;
+            exchanges.push_back(ex);
+        }
+    } 
+    else
+    {
+        for(int i = 0; i < recipients.size(); i++)
+        {
+            Contact sender; 
+            Integer priv = createContact(sender, recipients[i].dh, recipients[i].sp, con, password);
+            Integer p = a_exp_b_mod_c(recipients[i].person.publicKey, priv, recipients[i].dh.mod());
+            Exchange ex(recipients[i].person, sender.person, recipients[i].sp, fp.cp, recipients[i].dh);
+            ex.computed = p;
+            exchanges.push_back(ex);
+        }
     }
 
     // Writes each of the exchanges.
@@ -822,7 +882,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
                     left = *(int16_t*)&buf[0];
                 }
 
-                if(left <= buf.length())
+                if(left + sizeof(int16_t) <= buf.length())
                 {
                     out.append(&buf[0], left + sizeof(int16_t));
                     buf = buf.substr(left + sizeof(int16_t));
@@ -857,7 +917,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
                     left = *(int16_t*)&buf[0];
                 }
 
-                if(left <= buf.length())
+                if(left + sizeof(int16_t) <= buf.length())
                 {
                     out.append(&buf[0], left + sizeof(int16_t));
                     buf = buf.substr(left + sizeof(int16_t));
@@ -892,7 +952,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
     mac.final(hash);
     char valid = 1;
-    
+
     for(int i = 0; i < hc->hashsize() / 8; i++)
     {
         valid = valid && hash[i] == (unsigned char)fp.hash[i];

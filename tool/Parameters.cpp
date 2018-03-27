@@ -1,9 +1,9 @@
 #include "Parameters.h"
 
 #include "../cppcrypto/cppcrypto/cppcrypto.h"
+#include "toolCrypto.h"
 
 // Eventually we'll break this into separate files. 
-
 DHParameters::DHParameters() : modulus("0"), generator("0")
 {}
 
@@ -35,6 +35,25 @@ int DHParameters::len() const
 {
     return modulus.ByteCount() + generator.ByteCount() + sizeof(int16_t) * 2;
 }
+
+
+std::tuple<CryptoPP::Integer, CryptoPP::Integer> DHParameters::pohlig() const
+{
+    using CryptoPP::Integer;
+    Integer x = mod() - 1;
+    Integer y = 1;
+    for(int i = 2; i < 65536; i++)
+    {
+        while(!(x % i))
+        {
+            x /= i;
+            y *= i;
+        }
+    }
+
+    return std::make_tuple(x, y);
+}
+
 
 CryptoPP::Integer DHParameters::mod() const
 {
@@ -199,6 +218,51 @@ std::string Contact::out() const
     result.append((char*)&sp, sizeof(sp));
     result.append(dh.out());
     return result;
+}
+
+std::string Contact::uid(HashType ht) const
+{
+    using namespace cppcrypto;
+    std::string result;
+
+    Contact con(*this);
+
+    // Don't use the identity, this could be modified.
+    con.person.identity = "";
+    crypto_hash *hc;
+
+    getHash(ht, hc);
+    hc->init();
+    unsigned char* hashOut = new unsigned char[hc->hashsize() / 8]();
+
+    hc->hash_string(con.out(), hashOut);
+    result.append((char*)hashOut, hc->hashsize() / 8);
+    delete[] hashOut;
+    delete hc;
+    return result;
+}
+
+std::string Contact::uidHex(HashType ht) const
+{
+    std::string result;
+    std::string _uid = uid();
+    static char lookup[] = "0123456789ABCDEF";
+    for(int i = 0; i < _uid.length(); i++)
+    {
+        result += lookup[(_uid[i] >> 4) & 15];
+        result += lookup[_uid[i] & 15];
+    }
+    return result;
+}
+
+bool Contact::verify(std::string pass) const
+{
+    using CryptoPP::Integer;
+    // Compute the private and public values.
+    Integer priv;
+    priv.Decode((unsigned char*)getScrypt(pass, person.salt, sp.N, sp.P, sp.R, sp.len).c_str(), sp.len);
+    Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
+    return pub == person.publicKey;
 }
 
 

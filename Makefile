@@ -8,8 +8,8 @@ endif
 
 all: build/cryptotool.exe
 
-build/cryptotool.exe: build/Parameters.o build/main.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o
-	$(CC) build/main.o build/Parameters.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o -o build/cryptotool.exe $(END)
+build/cryptotool.exe: build/Parameters.o build/main.o build/SymmetricAuthenticationExtension.o build/AsymmetricAuthenticationExtension.o build/toolCrypto.o
+	$(CC) build/main.o build/Parameters.o build/AsymmetricAuthenticationExtension.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o -o build/cryptotool.exe $(END)
 
 build/main.o: tool/main.cpp  
 	$(CC) -c tool/main.cpp -o build/main.o $(END)
@@ -19,6 +19,9 @@ build/Parameters.o: tool/Parameters.cpp tool/Parameters.h
 
 build/SymmetricAuthenticationExtension.o: tool/SymmetricAuthenticationExtension.cpp tool/SymmetricAuthenticationExtension.h 
 	$(CC) -c tool/SymmetricAuthenticationExtension.cpp -o build/SymmetricAuthenticationExtension.o $(END)
+
+build/AsymmetricAuthenticationExtension.o: tool/AsymmetricAuthenticationExtension.cpp tool/AsymmetricAuthenticationExtension.h 
+	$(CC) -c tool/AsymmetricAuthenticationExtension.cpp -o build/AsymmetricAuthenticationExtension.o $(END)
 
 build/toolCrypto.o: tool/toolCrypto.cpp tool/toolCrypto.h 
 	$(CC) -c tool/toolCrypto.cpp -o build/toolCrypto.o $(END)

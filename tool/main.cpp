@@ -5,12 +5,14 @@
 #include <fstream>
 #include <string.h>
 #include <sstream>
+#include <tuple>
 #include <assert.h>
 
 #include "../cryptopp/osrng.h"
 #include "../cryptopp/integer.h"
 #include "../cryptopp/nbtheory.h"
 
+#include "AsymmetricAuthenticationExtension.h"
 #include "SymmetricAuthenticationExtension.h"
 #include "Parameters.h"
 #include "toolCrypto.h"
@@ -84,11 +86,15 @@ int main()
 {
     using CryptoPP::Integer;
     using CryptoPP::OS_GenerateRandomBlock;
+    
     ScryptParameters sp;
     CipherParams cp;
+    
+    bool sym = false;
+
     HashType h = HashType::SHA256;
     DHParameters dh("2", "47769438302540021096046443384978134814892753148995001100435849309801466711663622675763277561771586643466880132533087023976743720746114313685955475444589604417407040697888976978390583956623556758141737474347378435226827837774896742010138917035181496312250563068059450412947491330151828692648018138087943927636572818119324452596730516782404332695754162772658498436841083547989339855356853145414644716280526952238204193911949774915160700045679030240088906618979624377203573807795121870524572040515228739829252884815670239587909743396659766160612006380563578633815689354481428440538907836892141942976841851997058146892101157");
-    string command;
+    string command, from;
 
     cout << "> ";
     getline(cin, command);
@@ -126,6 +132,16 @@ int main()
             cout << "pe" << "\t\t" << "Prints encrypted file information." << endl;
 
             cout << "exit" << "\t\t" << "Exits the program." << endl;
+        }
+        // Bad Debug Commands for extensions lol.
+        else if(command == "sym")
+        {
+            sym = !sym;
+        }
+        else if(command == "from")
+        {
+            getline(cin, from);
+            from.append(".contact");
         }
         else if(command == "c" || command == "contact")
         {
@@ -182,20 +198,59 @@ int main()
             cout << "To Send: ";
             getline(cin, file);
 
-            FileProperties fp(cp, h);
+            
+            Contact fromCon;
+            Contact* con = 0;
 
+            string password("");
+
+            // bad debug command to test sending "from"
+            if(from.length())
+            {
+                cout << "Password for " << from << ": ";
+                password = getPassword();
+
+                decodeFile(fromCon, from);
+
+                if(fromCon.verify(password))
+                {
+                    AsymmetricAuthenticationExtension aae(fromCon, file, password, h);
+                    con = &fromCon;
+                    extensions.push_back(aae.out());
+                }
+                else
+                {
+                    password = "";
+                }                
+            }
+
+            // This is a bad debug command.
+            if(sym)
+            {
+                string question, answer;
+
+                cout << "Symmetric Challenge: ";
+                getline(cin, question);
+                while(question != "-1")
+                {                    
+                    getline(cin, answer);
+                    SymmetricAuthenticationExtension sae(question, answer, file, h);
+                    extensions.push_back(sae.out());
+                    cout << "Symmetric Challenge: ";
+                    getline(cin, question);
+                }
+            }
+
+            FileProperties fp(cp, h);
             hmacFile(file, extensions, fp);
 
             cout << "Out File: ";
             getline(cin, command);
 
-            string password("");
-
-            
             fp.recipients = recipients.size();
             fp.extensions = extensions.size();
 
-            encryptFile(file, command, recipients, extensions, fp, password);
+            encryptFile(file, command, recipients, extensions, fp, password, con);
         }
         // allows you to specify the DH Params for creating contacts.
         else if(command == "dh")
@@ -255,8 +310,6 @@ int main()
 
             cout << endl;
             cout << ((poh&&mod) ? "Verified" : "Bad Parameters") << endl;
-
-
         }
         else if(command == "ciphlist")
         {   
@@ -307,7 +360,6 @@ int main()
 
             cout << "Cipher: " << getCipherName(fp.cp.cipherType) << endl << "Hash: " << getHashName(fp.ht) << endl << endl;
             
-
             cout << "Extension count: " << fp.extensions << endl;
             
         }
@@ -323,7 +375,8 @@ int main()
 
             cout << "Identity: " << con.person.identity << endl
                  << "Salt: 0x" << con.person.saltHex() << endl
-                 << "Public Key: " << con.person.publicKey << endl;
+                 << "Public Key: " << con.person.publicKey << endl
+                 << "UID: 0x" << con.uidHex() << endl;
 
             cout << endl;
             cout << "Generator: " << con.dh.gen() << endl
@@ -403,19 +456,9 @@ int main()
             cout << "Password: "; 
             string password = getPassword();
 
-            // Compute the private and public values.
-            Integer priv;
-            priv.Decode((unsigned char*)getScrypt(password, con.person.salt, con.sp.N, con.sp.P, con.sp.R, con.sp.len).c_str(), con.sp.len);
-            Integer pub = a_exp_b_mod_c(con.dh.gen(), priv, con.dh.mod());
+            bool verified = con.verify(password);
 
-            if(pub == con.person.publicKey)
-            {
-                cout << "Verified" << endl;
-            }
-            else
-            {
-                cout << "Not Verified" << endl;
-            }
+            cout << (verified ? "Verified" : "Not Verified")  << endl;
         }
         else if(command == "open" || command == "o")
         {
@@ -465,6 +508,18 @@ int main()
                     }
                 }
                 cout << "=== End Symmetric Authentication ===" << endl;
+
+                cout << "=== Asymmetric Authentication ===" << endl;
+                for(int i = 0; i < extensions.size(); i++)
+                {
+                    if(extensions[i].et == ExtensionType::ASYMMETRIC)
+                    {
+                        AsymmetricAuthenticationExtension aae(extensions[i]);
+                        cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
+                        cout << (aae.verify(ofile, fp.ht) ? "Success" : "Fail") << endl;                 
+                    }
+                }
+                cout << "=== End Asymmetric Authentication ===" << endl;
             }
         }
         else

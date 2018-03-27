@@ -15,21 +15,20 @@
 std::string getScrypt(const std::string& password, const std::string& salt, int N = 1 << 14, int p = 16, int r = 8, int len = 32);
 
 #if defined(_WIN32) || defined(_WIN64)
-#include <conio.h>
-#include <stdio.h>
-#include <io.h>
-
-// Works on Windows with Mingw32_64
-std::string getPassword();
 #else
 int getch();
-std::string getPassword();
 #endif
 
+std::string getPassword();
+
+
+CryptoPP::Integer stringToCryptoInt(const std::string& s);
+std::string cryptoIntToString(const CryptoPP::Integer& n);
+CryptoPP::Integer passwordToPrivate(const std::string& pass, const std::string& salt, const ScryptParameters& sp);
 
 std::string intToScrypt(const CryptoPP::Integer& i, const ScryptParameters& sp, int keyLen, const FileProperties& fp);
 CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp);
-CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp, const std::string& identity, std::string& password);
+CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp, Contact* sender, std::string& password);
 
 
 // This code will probably be replaced.
@@ -51,10 +50,8 @@ int getCipherBlockSize(CipherType p);
 template <class T>
 void encodeFile(T& c, const std::string& fileName);
 
-
 template <class T>
 void decodeFile(T& c, const std::string& fileName);
-
 
 void decodeEncrypted(std::vector<Exchange>& exchanges, FileProperties& fp, const std::string& fileName);
 
@@ -74,5 +71,5 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
 // older versions won't be negatively affected by its addition.
 DataExtension symmetricSign(const FileProperties& fp, const std::string& password);
 
-void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password);
+void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password, Contact* con = 0);
 char decryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, std::vector<DataExtension>& extensions, const FileProperties& fp, const std::string& password, int person = 0);

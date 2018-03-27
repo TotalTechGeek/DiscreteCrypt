@@ -15,7 +15,6 @@ class SymmetricAuthenticationExtension
     SymmetricAuthenticationExtension(const DataExtension& d);
 
     DataExtension out() const;
-
     std::string prompt() const;
     void parse(const DataExtension& d);
     bool check(std::string pass, std::string file, HashType ht) const;
