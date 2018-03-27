@@ -353,8 +353,8 @@ int main()
             cout << "People: " << endl;
             for(int i = 0; i < exchanges.size(); i++)
             {
-                cout << exchanges[i].alice.identity << " (0x" << exchanges[i].alice.saltHex() << ")" << endl
-                << exchanges[i].bob.identity << " (0x" << exchanges[i].bob.saltHex() << ")" << endl;
+                cout << exchanges[i].alice.identity << " (0x" << exchanges[i].aliceContact().uidHex() << ")" << endl
+                << exchanges[i].bob.identity << " (0x" << exchanges[i].bobContact().uidHex() << ")" << endl;
             }
             cout << endl;
 
@@ -418,7 +418,8 @@ int main()
              for(int i = 0; i < exchanges.size(); i++)
             {
                 ex = exchanges[i];
-                cout << (i*2+1) << ") " << ex.alice.identity << endl << (i*2+2) << ") " << ex.bob.identity << endl;
+                cout    << (i*2+1) << ") " << ex.alice.identity << " (0x" << ex.aliceContact().uidHex() << ")" << endl 
+                        << (i*2+2) << ") " << ex.bob.identity << " (0x" << ex.bobContact().uidHex() << ")" << endl;
             }
 
             getline(cin, command);
@@ -426,16 +427,13 @@ int main()
             ex = exchanges[person/2];
             Contact c;
 
-            c.dh = ex.dh;
-            c.sp = ex.sp;
-
             if(person & 1)
             {
-                c.person = ex.bob;    
+                c = ex.bobContact();  
             }
             else
             {
-                c.person = ex.alice;
+                c = ex.aliceContact();
             }
 
             cout << "Out File: ";
@@ -467,7 +465,6 @@ int main()
             cout << "In File: ";
             getline(cin, file);
             
-            Exchange ex;
             FileProperties fp(cp, h);
 
             vector<Exchange> exchanges;
@@ -477,8 +474,8 @@ int main()
 
             for(int i = 0; i < exchanges.size(); i++)
             {
-                ex = exchanges[i];
-                cout << (i*2+1) << ") " << ex.alice.identity << endl << (i*2+2) << ") " << ex.bob.identity << endl;
+                cout << (i*2+1) << ") " << exchanges[i].alice.identity << " (0x" << exchanges[i].aliceContact().uidHex() << ")" << endl
+                << (i*2+2) << ") " << exchanges[i].bob.identity << " (0x" << exchanges[i].bobContact().uidHex() << ")" << endl;
             }
             getline(cin, command);
 

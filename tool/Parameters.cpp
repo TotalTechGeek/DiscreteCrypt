@@ -255,6 +255,7 @@ std::string Contact::uidHex(HashType ht) const
     return result;
 }
 
+
 bool Contact::verify(std::string pass) const
 {
     using CryptoPP::Integer;
@@ -344,6 +345,24 @@ std::string Exchange::out() const
     result.append((char*)&sp, sizeof(ScryptParameters));
     result.append(dh.out());
     return result;
+}
+
+Contact Exchange::aliceContact() const
+{
+    Contact con;
+    con.sp = sp;
+    con.dh = dh;
+    con.person = alice;
+    return con;
+}
+
+Contact Exchange::bobContact() const
+{
+    Contact con;
+    con.sp = sp;
+    con.dh = dh;
+    con.person = bob;
+    return con;
 }
 
 std::string DataExtension::out() const
