@@ -175,6 +175,43 @@ int main()
                 cout << std::dec;
             }   
         }
+        else if(command == "verify")
+        {
+            string sig, file;
+
+            AsymmetricAuthenticationSignature aas;
+            
+            cout << "Signature File: ";
+            getline(cin, sig);
+            decodeFile(aas, sig);
+            cout << "File: ";
+            getline(cin, file);
+            cout << (aas.verify(file) ? "Verified" : "Not Verified") << endl;
+        }
+        else if(command == "sign")
+        {
+            string from, file, password, ofile;
+
+            Contact con;
+            cout << "Contact File: ";
+            getline(cin, from);
+            from.append(".contact");
+            decodeFile(con, from);
+
+            cout << "File: ";
+            getline(cin, file);
+            
+            cout << "Password: ";
+            password = getPassword();
+
+            if(con.verify(password))
+            {
+                cout << "Out File: ";
+                getline(cin, ofile);
+                AsymmetricAuthenticationSignature aas(con, file, password, h);
+                encodeFile(aas, ofile);
+            }
+        }
         else if(command == "to")
         {
             string file;
@@ -216,7 +253,7 @@ int main()
                 {
                     AsymmetricAuthenticationExtension aae(fromCon, file, password, h);
                     con = &fromCon;
-                    extensions.push_back(aae.out());
+                    extensions.push_back(aae.outData());
                 }
                 else
                 {

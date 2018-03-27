@@ -239,7 +239,6 @@ struct Exchange
     Exchange(const std::string& in, int offset = 0);
     void parse(const std::string& in, int offset = 0);
 
-
     Contact aliceContact() const;
     Contact bobContact() const;
 

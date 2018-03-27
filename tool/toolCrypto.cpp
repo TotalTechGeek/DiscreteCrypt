@@ -1,6 +1,7 @@
 #include "toolCrypto.h"
 #include "Parameters.h"
 #include "../cryptopp/osrng.h"
+#include "AsymmetricAuthenticationExtension.h"
 #include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include <string>
 #include <iostream>
@@ -974,6 +975,9 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
 template void decodeFile<Contact>(Contact& c, const std::string& fileName);
 template void decodeFile<DHParameters>(DHParameters& c, const std::string& fileName);
+template void decodeFile<AsymmetricAuthenticationSignature>(AsymmetricAuthenticationSignature& c, const std::string& fileName);
+
 
 template void encodeFile<Contact>(Contact& c, const std::string& fileName);
 template void encodeFile<DHParameters>(DHParameters& c, const std::string& fileName);
+template void encodeFile<AsymmetricAuthenticationSignature>(AsymmetricAuthenticationSignature& c, const std::string& fileName);

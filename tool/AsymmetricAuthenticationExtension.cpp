@@ -6,7 +6,6 @@ using CryptoPP::Integer;
 
 AsymmetricAuthenticationExtension::AsymmetricAuthenticationExtension() : r("0"), s("0"), _contact()
 {
-
 }
 
 AsymmetricAuthenticationExtension::AsymmetricAuthenticationExtension(const DataExtension& d) : r("0"), s("0"), _contact()
@@ -128,27 +127,33 @@ std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndH
 #define append_int(x) \
     con = cryptoIntToString(x); \
     len = con.length(); \
-    d.data.append((char*)&len, sizeof(int16_t)); \
-    d.data.append(con);
+    res.append((char*)&len, sizeof(int16_t)); \
+    res.append(con);
 
-DataExtension AsymmetricAuthenticationExtension::out() const
+DataExtension AsymmetricAuthenticationExtension::outData() const
 {
     using namespace std;
     DataExtension d;
-
     d.et = ExtensionType::ASYMMETRIC;
+    d.data = out();
+    return d;
+}
 
+std::string AsymmetricAuthenticationExtension::out() const
+{
+    using namespace std;
+    std::string res;
+   
     string con = _contact.out();
     int16_t len = con.length();
 
-    
-    d.data.append((char*)&len, sizeof(int16_t));
-    d.data.append(con);
+    res.append((char*)&len, sizeof(int16_t));
+    res.append(con);
 
     append_int(r)
     append_int(s)
 
-    return d;
+    return res;
 }
 
 Contact AsymmetricAuthenticationExtension::contact() const
@@ -157,17 +162,15 @@ Contact AsymmetricAuthenticationExtension::contact() const
 }
 
 #define read_next(x) \
-    len = *(int16_t*)&d.data[offset]; \
+    len = *(int16_t*)&data[offset]; \
     offset += sizeof(int16_t);\
-    con = d.data.substr(offset, len);\
+    con = data.substr(offset, len);\
     offset += len;
 
-void AsymmetricAuthenticationExtension::parse(const DataExtension& d)
+void AsymmetricAuthenticationExtension::parse(const std::string& data, int offset)
 {
     using namespace std;
     
-    int offset = 0;
-
     string con;
     int16_t len;
     
@@ -180,6 +183,41 @@ void AsymmetricAuthenticationExtension::parse(const DataExtension& d)
     read_next()
     s = stringToCryptoInt(con);
 }
+    
+
+void AsymmetricAuthenticationExtension::parse(const DataExtension& d)
+{
+    parse(d.data);
+}
 
 #undef read_next
 #undef append_int
+
+AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature() : aae(), ht(HashType::SHA256)
+{
+}
+
+AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature(const Contact& c, const std::string& file, const std::string& password, HashType ht) : aae(c, file, password, ht), ht(ht)
+{
+
+}
+    
+bool AsymmetricAuthenticationSignature::verify(std::string file)
+{
+    return aae.verify(file, ht);
+}
+
+std::string AsymmetricAuthenticationSignature::out() const
+{
+    std::string res;
+    res.append((char*)&ht, sizeof(HashType));
+    res.append(aae.out());
+    return res;
+}
+
+void AsymmetricAuthenticationSignature::parse(const std::string& data, int offset)
+{
+    ht = *(HashType*)&data[offset];
+    offset += sizeof(HashType);
+    aae.parse(data, offset);
+}
