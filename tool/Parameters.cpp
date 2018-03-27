@@ -104,7 +104,7 @@ CipherParams::CipherParams(const CipherParams& c) : cipherType(c.cipherType), mo
 {
 }
 
-ScryptParameters::ScryptParameters() : N(1 << 14), P(16), R(8), len(32)
+ScryptParameters::ScryptParameters() : N(1 << 14), P(16), R(8), len(64)
 {
 }
 
