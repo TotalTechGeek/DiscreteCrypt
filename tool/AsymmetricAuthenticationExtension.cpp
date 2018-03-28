@@ -201,6 +201,11 @@ AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature(const Conta
 {
 
 }
+
+Contact AsymmetricAuthenticationSignature::contact() const
+{
+    return aae.contact();
+}
     
 bool AsymmetricAuthenticationSignature::verify(std::string file)
 {

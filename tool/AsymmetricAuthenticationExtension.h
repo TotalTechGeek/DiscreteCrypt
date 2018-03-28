@@ -35,6 +35,8 @@ class AsymmetricAuthenticationSignature
     
     bool verify(std::string file);
 
+    Contact contact() const;
+
     std::string out() const;
     void parse(const std::string& data, int offset = 0);
 };

@@ -26,12 +26,14 @@ struct ProgramParams
     ScryptParameters sp;
     CipherParams cp;
     
-    bool sym = false;
     HashType h = HashType::SHA256;
     DHParameters dh = DHParameters("2", "1236027852723267358067496240415081192016632901798652377386974104662393263762300791015297301419782476103015366958792837873764932552461292791165884073898812814414137342163134112441573878695866548152604326906481241134560091096795607547486746060322717834549300353793656273878542405925895784382400028374603183267116520399667622873636417533621785188753096887486165751218947390793886174932206305484313257628695734926449809428884085464402485504798782585345665225579018127843073619788513405272670558284073983759985451287742892999484270521626583252756445695489268987027078838378407733148367649564107237496006094048593708959670063677802988307113944522310326616125731276572628521088574537964296697257866765026848588469121515995674723869067535040253689232576404893685613618463095967906841853447414047313021676108205138971649482561844148237707440562831931089544088821151806962538015278155763187487878945694840272084274212918033049841007502061");
     
     string from;
+    string exportSigners;
 
+    vector<string> messages;
+    vector<tuple<string, string>> symmetricAuthentications;
 };
 
 namespace StringSplitFunctions
@@ -103,7 +105,9 @@ void verify(ProgramParams& programParams, const string& sig, const string& file)
 {
     AsymmetricAuthenticationSignature aas;
     decodeFile(aas, sig);
-    cout << (aas.verify(file) ? "Verified" : "Not Verified") << endl;
+
+    cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
+    cout << (aas.verify(file) ? "Verified" : "Verification Failed") << endl;
 }
 
 void to(ProgramParams& programParams, const string& contact, const string& file, const string& ofile, bool cli = false)
@@ -141,21 +145,23 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
             password = "";
         }                
     }
-    // This is a bad debug command.
-    if(programParams.sym)
+
+    for(int i = 0; i < programParams.symmetricAuthentications.size(); i++)
     {
-        string question, answer;
-        cout << "Symmetric Challenge: ";
-        getline(cin, question);
-        while(question != "-1")
-        {                    
-            getline(cin, answer);
-            SymmetricAuthenticationExtension sae(question, answer, file, programParams.h);
-            extensions.push_back(sae.out());
-            cout << "Symmetric Challenge: ";
-            getline(cin, question);
-        }
+        string message, answer;
+        tie(message, answer) = programParams.symmetricAuthentications[i];
+        SymmetricAuthenticationExtension sae(message, answer, file, programParams.h);
+        extensions.push_back(sae.out());
     }
+
+    for(int i = 0; i < programParams.messages.size(); i++)
+    {
+        DataExtension de; 
+        de.et = ExtensionType::MESSAGE;
+        de.data = programParams.messages[i];
+        extensions.push_back(de);
+    }
+    
     FileProperties fp(programParams.cp, programParams.h);
     hmacFile(file, extensions, fp);
         
@@ -249,6 +255,7 @@ void help2()
     cout << "-to <contact files> <input file> <output file>" << "\t" << "Encrypts file for a contact." << endl;
     cout << "-open <file> <output file>" << "\t\t\t" << "Opens a file" << endl;
     cout << "-check <contact file>" << "\t\t\t\t" << "Checks if password matches a contact file." << endl;
+    cout << "-ciph <ciph #>" << "\t\t\t\t\t" << "Sets the ciph used." << endl;
     cout << "-ciphlist" << "\t\t\t\t\t" << "Prints out all the ciphers available." << endl;
     cout << "-hash <hash #>" << "\t\t\t\t\t" << "Sets the hash used." << endl;
     cout << "-hashlist" << "\t\t\t\t\t" << "Prints out all the hash functions available." << endl;
@@ -261,7 +268,10 @@ void help2()
     // cout << "sdh" << " " << "Saves discrete log parameters to a file." << endl;
     // cout << "eldh" << " " << "Loads discrete log parameters from an encrypted file." << endl;
     // cout << "cldh" << " " << "Loads discrete log parameters from a contact file." << endl;
-    // cout << "pdh" << " " << "Prints discrete log parameters." << endl;
+    cout << "-pdh" << "\t\t\t\t\t\t" << "Prints discrete log parameters." << endl;
+    cout << "-pldh" << "\t\t\t\t\t\t" << "Prints discrete log parameters from file." << endl;
+    cout << "-dhtest" << "\t\t\t\t\t\t" << "Tests the currently loaded parameters." << endl;
+
     // cout << "exc" << " " << "Extracts a contact from a file." << endl;
     cout << "-pc <contact file>" << "\t\t\t\t" << "Prints contact information." << endl;
     cout << "-pe <encrypted file>" << "\t\t\t\t" << "Prints encrypted file information." << endl;
@@ -291,29 +301,68 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
     cout << (success ? "Success" : "Fail") << endl;
     if(success)
     {
-        cout << "=== Symmetric Authentication ===" << endl;
+        int first = 0;
+        
+        for(int i = 0; i < extensions.size(); i++)
+        {
+            if(extensions[i].et == ExtensionType::MESSAGE)
+            {
+                if(!(first++))
+                {
+                    cout << "=== Messages ===" << endl;
+                }
+
+                cout << extensions[i].data << endl;
+            }
+        }
+
+        if(first) cout << "=== End Messages ===" << endl;
+        first = 0;
+
         for(int i = 0; i < extensions.size(); i++)
         {
             if(extensions[i].et == ExtensionType::SYMMETRIC)
             {
+                if(!(first++))
+                {
+                    cout << "=== Symmetric Authentication ===" << endl;
+                }
+
                 SymmetricAuthenticationExtension sae(extensions[i]);
                 cout << sae.prompt() << endl;
-                getline(cin, command);
+                command = getPassword();
                 cout << (sae.check(command, ofile, fp.ht) ? "Success" : "Fail") << endl;                 
             }
         }
-        cout << "=== End Symmetric Authentication ===" << endl;
-        cout << "=== Asymmetric Authentication ===" << endl;
+
+        if(first) cout << "=== End Symmetric Authentication ===" << endl;
+        first = 0;
+
         for(int i = 0; i < extensions.size(); i++)
         {
             if(extensions[i].et == ExtensionType::ASYMMETRIC)
             {
+                if(!(first++))
+                {
+                    cout << "=== Asymmetric Authentication ===" << endl;
+                }
+
                 AsymmetricAuthenticationExtension aae(extensions[i]);
                 cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
-                cout << (aae.verify(ofile, fp.ht) ? "Success" : "Fail") << endl;                 
+                cout << (aae.verify(ofile, fp.ht) ? "Success" : "Fail") << endl;
+
+                // Allows someone to export the signers of a message.
+                if(programParams.exportSigners.length())
+                {
+                    Contact con(aae.contact());
+                    encodeFile(con, to_string(i) + "_" + programParams.exportSigners);
+                }
             }
         }
-        cout << "=== End Asymmetric Authentication ===" << endl;
+
+        if(first) cout << "=== End Asymmetric Authentication ===" << endl;
+        first = 0;
+
     }
     
 }
@@ -467,6 +516,47 @@ int main(int argc, char**args)
                 {
                     help2();
                 }
+                else if(cur == "dhtest")
+                {
+                    dhtest(programParams);
+                }
+                else if(cur == "-prompt")
+                {
+                    string question = args[++i];
+                    cout << question << endl;
+                    cout << "Answer: " << endl;
+
+                    string answer;
+                    getline(cin, answer);
+                    
+                    programParams.symmetricAuthentications.push_back(make_tuple(question, answer));
+                }
+                else if(cur == "-prompt-hidden")
+                {
+                    string question = args[++i];
+                    cout << question << endl;
+                    cout << "Answer: " << endl;
+
+                    string answer = getPassword();
+                    programParams.symmetricAuthentications.push_back(make_tuple(question, answer));
+                }
+                else if(cur == "-add-message")
+                {
+                    cout << "Message: ";
+                    getline(cin, command);
+                    programParams.messages.push_back(command);
+                }
+                else if(cur == "-add-message-hidden")
+                {
+                    cout << "Message: ";
+                    command = getPassword();
+                    programParams.messages.push_back(command);
+                }
+                else if (cur == "-drop")
+                {
+                    programParams.symmetricAuthentications.clear();
+                    programParams.messages.clear();
+                }
                 else if(cur == "contact" || cur == "c")
                 {
                     contact(programParams, args[++i]);
@@ -476,6 +566,11 @@ int main(int argc, char**args)
                     string in = args[++i];
                     string out = args[++i];
                     extractContact(programParams, in, out);
+                }
+                // Allows someone to export the signers of a message.
+                else if(cur == "-exportSigners")
+                {
+                    programParams.exportSigners = args[++i];
                 }
                 else if(cur == "to")
                 {
@@ -563,11 +658,6 @@ int main(int argc, char**args)
             if(command == "help" || command == "h")
             {
                 help();
-            }
-            // Bad Debug Commands for extensions lol.
-            else if(command == "sym")
-            {
-                programParams.sym = !programParams.sym;
             }
             else if(command == "from")
             {

@@ -125,7 +125,8 @@ enum ExtensionType : uint8_t
 {
     CUSTOM,
     SYMMETRIC,
-    ASYMMETRIC
+    ASYMMETRIC, 
+    MESSAGE
 };
 
 enum CipherType : int16_t
