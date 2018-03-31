@@ -539,30 +539,73 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
 }
 
 
-// The functionality is thought out, it's just not properly implemented.
-// The good news is that this is supported now, which means that when the behavior is implemented, 
-// older versions won't be negatively affected by its addition.
-DataExtension symmetricSign(const FileProperties& fp, const std::string& password)
+// Exports a file bundled with its signature
+void bundleFile(const std::string& fileName, const std::string& outputFile, const Contact& sender, const std::string& password, HashType hashType)
 {
-    using namespace cppcrypto;
-    unsigned char* hash;
-    crypto_hash* bc;
+    using namespace std;
+    AsymmetricAuthenticationSignature aas(sender, fileName, password, hashType);
+
+    string out; 
+    out = aas.out();
+    int16_t len = out.length();
+
+    // Write the signature
+    ofstream outFile(outputFile, ios::binary);
+    outFile.write((char*)&len, sizeof(int16_t));
+    outFile.write(&out[0], out.length());
+
+
+    ifstream inFile(fileName, ios::binary);
+
+    char buf[1];
+
+    // I'm just going to do this quickly 
     
-    getHash(fp.ht, bc);
+    inFile.read(buf, 1);
+    while(!inFile.eof())
+    {
+        outFile.write(buf, 1);
+        inFile.read(buf, 1);
+    }
 
-    hash = new unsigned char[bc->hashsize() / 8]();
+    inFile.close();
+    outFile.close();
+}
 
-    hmac mac(*bc, password);
-    mac.init();
+AsymmetricAuthenticationSignature debundleFile(const std::string& fileName, const std::string& outputFile)
+{
+    using namespace std;
+    char lenIn[2];
+    char buf[1];
+    int16_t len;
 
-    mac.update((unsigned char*)fp.hash.c_str(), fp.hash.length());
-    mac.final(hash);
+    ifstream file(fileName, ios::binary);
+    ofstream ofile(outputFile, ios::binary);
+    file.read(lenIn, 2);
 
-    DataExtension result;
-    result.data.append((char*)hash, bc->hashsize() / 8);
+    len = *(int16_t*)&lenIn;
 
-    result.et = ExtensionType::SYMMETRIC;
-    return result;
+    char *block = new char[len];
+    file.read(block, len);
+    string in("");
+    in.append(block, len);
+
+    AsymmetricAuthenticationSignature aas;
+    aas.parse(in);
+
+    file.read(buf, 1);
+    while(!file.eof())
+    {
+        ofile.write(buf, 1);
+        file.read(buf, 1);
+    }
+
+    ofile.close();
+    file.close();
+
+    
+    delete[] block;
+    return aas;
 }
 
 

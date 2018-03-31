@@ -107,7 +107,7 @@ void verify(ProgramParams& programParams, const string& sig, const string& file)
     decodeFile(aas, sig);
 
     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
-    cout << (aas.verify(file) ? "Verified" : "Verification Failed") << endl;
+    cout << (aas.verify(file) ? "Signature Verified" : "Signature Verification Failed") << endl;
 }
 
 void to(ProgramParams& programParams, const string& contact, const string& file, const string& ofile, bool cli = false)
@@ -259,15 +259,11 @@ void help2()
     cout << "-ciphlist" << "\t\t\t\t\t" << "Prints out all the ciphers available." << endl;
     cout << "-hash <hash #>" << "\t\t\t\t\t" << "Sets the hash used." << endl;
     cout << "-hashlist" << "\t\t\t\t\t" << "Prints out all the hash functions available." << endl;
-    // cout << "dh" << " " << "Lets you set Discrete Log Parameters." << endl;
     cout << "-ldh <dh file>" << "\t\t\t\t\t" << "Loads discrete log parameters from a file." << endl;
     cout << "-from <contact file>" << "\t\t\t\t" << "Sets which contact files are from." << endl;
     cout << "-sign <contact file> <in file> <out file>" << "\t" << "Signs a file using a contact." << endl;
     cout << "-verify <sig file> <out file>" << "\t\t\t" << "Verifies a file from its signature." << endl;
     
-    // cout << "sdh" << " " << "Saves discrete log parameters to a file." << endl;
-    // cout << "eldh" << " " << "Loads discrete log parameters from an encrypted file." << endl;
-    // cout << "cldh" << " " << "Loads discrete log parameters from a contact file." << endl;
     cout << "-pdh" << "\t\t\t\t\t\t" << "Prints discrete log parameters." << endl;
     cout << "-pldh" << "\t\t\t\t\t\t" << "Prints discrete log parameters from file." << endl;
     cout << "-dhtest" << "\t\t\t\t\t\t" << "Tests the currently loaded parameters." << endl;
@@ -481,6 +477,9 @@ void pdh(const DHParameters & dh)
     cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
 }
 
+// Todo : Extract contact from signature files and bundles.
+// An unnecessary addition at this stage.
+
 // The identity field will eventually use JSON.
 int main(int argc, char**args)
 {
@@ -519,6 +518,27 @@ int main(int argc, char**args)
                 else if(cur == "dhtest")
                 {
                     dhtest(programParams);
+                }
+                else if(cur == "bundle" || cur == "b")
+                {
+                    string contact = args[++i];
+                    string file = args[++i];
+                    string ofile = args[++i];
+
+                    Contact c;
+                    decodeFile(c, contact);
+                    cout << "Password: "; 
+                    string password = getPassword();
+                    bundleFile(file, ofile, c, password, programParams.h);
+                }
+                else if (cur == "debundle" || cur == "db")
+                {
+                    string file = args[++i];
+                    string ofile = args[++i];
+                    AsymmetricAuthenticationSignature aas = debundleFile(file, ofile);
+
+                    cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
+                    cout << (aas.verify(ofile) ? "Signature Verified" : "Signature Verification Failed") << endl;
                 }
                 else if(cur == "-prompt")
                 {
@@ -610,14 +630,14 @@ int main(int argc, char**args)
                     DHParameters dh = extractDHParameters_e(file);
                     encodeFile(dh, ofile);
                 }
-                else if(cur == "sign")
+                else if(cur == "sign" || cur == "s")
                 {
                      string from = args[++i];
                      string file = args[++i];
                      string ofile = args[++i];
                      sign(programParams, from, file, ofile);
                 }
-                else if(cur == "verify")
+                else if(cur == "verify" || cur == "v")
                 {
                     string sig = args[++i];
                     string file = args[++i];
