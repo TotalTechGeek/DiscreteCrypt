@@ -116,6 +116,7 @@ void verify(ProgramParams& programParams, const string& sig, const string& file)
     }
 
     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
+    cout << "Hash Algorithm: " << getHashName(aas.hashType()) << endl;
     cout << (aas.verify(file) ? "Signature Verified" : "Signature Verification Failed") << endl;
 }
 
@@ -591,7 +592,9 @@ int main(int argc, char**args)
                     }
 
                     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
+                    cout << "Hash Algorithm: " << getHashName(aas.hashType()) << endl;
                     cout << (aas.verify(ofile) ? "Signature Verified" : "Signature Verification Failed") << endl;
+           
                 }
                 else if(cur == "-prompt")
                 {

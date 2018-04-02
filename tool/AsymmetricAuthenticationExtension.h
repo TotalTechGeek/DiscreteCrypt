@@ -37,6 +37,8 @@ class AsymmetricAuthenticationSignature
 
     Contact contact() const;
 
+    HashType hashType() const;
+
     std::string out() const;
     void parse(const std::string& data, int offset = 0);
 };

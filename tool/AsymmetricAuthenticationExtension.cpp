@@ -202,6 +202,11 @@ AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature(const Conta
 
 }
 
+HashType AsymmetricAuthenticationSignature::hashType() const
+{
+    return ht;
+}
+
 Contact AsymmetricAuthenticationSignature::contact() const
 {
     return aae.contact();
