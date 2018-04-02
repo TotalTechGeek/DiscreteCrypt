@@ -111,7 +111,8 @@ void verify(ProgramParams& programParams, const string& sig, const string& file)
     // Export the signer.
     if(programParams.exportSigners.length())
     {
-        encodeFile(aas.contact(), programParams.exportSigners);
+        Contact c(aas.contact());
+        encodeFile(c, programParams.exportSigners);
     }
 
     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
@@ -582,10 +583,11 @@ int main(int argc, char**args)
                     string ofile = args[++i];
                     AsymmetricAuthenticationSignature aas = debundleFile(file, ofile);
 
-                    // export the signer.
+                    // Export the signer.
                     if(programParams.exportSigners.length())
                     {
-                        encodeFile(aas.contact(), programParams.exportSigners);
+                        Contact c(aas.contact());
+                        encodeFile(c, programParams.exportSigners);
                     }
 
                     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
