@@ -108,6 +108,12 @@ void verify(ProgramParams& programParams, const string& sig, const string& file)
     AsymmetricAuthenticationSignature aas;
     decodeFile(aas, sig);
 
+    // Export the signer.
+    if(programParams.exportSigners.length())
+    {
+        encodeFile(aas.contact(), programParams.exportSigners);
+    }
+
     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
     cout << (aas.verify(file) ? "Signature Verified" : "Signature Verification Failed") << endl;
 }
@@ -515,9 +521,6 @@ void pdh(const DHParameters & dh)
     cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
 }
 
-// Todo : Extract contact from signature files and bundles.
-// An unnecessary addition at this stage.
-
 // The identity field will eventually use JSON.
 int main(int argc, char**args)
 {
@@ -578,6 +581,12 @@ int main(int argc, char**args)
                     string file = args[++i];
                     string ofile = args[++i];
                     AsymmetricAuthenticationSignature aas = debundleFile(file, ofile);
+
+                    // export the signer.
+                    if(programParams.exportSigners.length())
+                    {
+                        encodeFile(aas.contact(), programParams.exportSigners);
+                    }
 
                     cout << "Signed by: " << aas.contact().person.identity << endl << "UID: 0x" << aas.contact().uidHex() << endl;
                     cout << (aas.verify(ofile) ? "Signature Verified" : "Signature Verification Failed") << endl;
