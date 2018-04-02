@@ -3,7 +3,7 @@
 #include <string>
 
 #include <tuple>
-#define DISCRETECRYPT_VERSION 2
+#define DISCRETECRYPT_FILE_VERSION 3
 
 class DHParameters
 {
@@ -209,7 +209,7 @@ struct Contact
 // This goes at the beginning of every encrypted file.
 struct FileProperties
 {
-    char version = DISCRETECRYPT_VERSION;
+    char version = DISCRETECRYPT_FILE_VERSION;
     int16_t recipients = 1;
     int16_t extensions = 0;
     CipherParams cp;

@@ -32,6 +32,8 @@ struct ProgramParams
     string from;
     string exportSigners;
 
+    bool force = false;
+
     vector<string> messages;
     vector<tuple<string, string>> symmetricAuthentications;
 };
@@ -166,7 +168,6 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
     hmacFile(file, extensions, fp);
         
     fp.recipients = recipients.size();
-    fp.extensions = extensions.size();
     encryptFile(file, ofile, recipients, extensions, fp, password, con);
 }
 
@@ -284,11 +285,39 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
     vector<Exchange> exchanges;
     vector<DataExtension> extensions;
     decodeEncrypted(exchanges, fp, file);
+    
+    // File version check code.
+    if(fp.version < DISCRETECRYPT_FILE_VERSION)
+    {
+        cout << "Warning: Decrypting an old file format." << endl;
+        if(fp.version == 2)
+        {
+            if(programParams.force);
+            else
+            {
+                cout << "Error: Refusing to decrypt old file version. Use --force." << endl;
+                cout << "Warning: This version will not be supported for much longer." << endl;
+                return;
+            }
+        }
+        else
+        {
+            cout << "Error: Can't decrypt file." << endl;
+            return;
+        }
+    }
+    else
+    if(fp.version > DISCRETECRYPT_FILE_VERSION)
+    {
+        cout << "Warning: May not be able to decrypt newer file version." << endl;
+    }
+
     for(int i = 0; i < exchanges.size(); i++)
     {
         cout << (i*2+1) << ") " << exchanges[i].alice.identity << " (0x" << exchanges[i].aliceContact().uidHex() << ")" << endl
         << (i*2+2) << ") " << exchanges[i].bob.identity << " (0x" << exchanges[i].bobContact().uidHex() << ")" << endl;
     }
+
     getline(cin, command);
     person = stoi(command) - 1;
     cout << "Password: ";
@@ -518,6 +547,10 @@ int main(int argc, char**args)
                 else if(cur == "dhtest")
                 {
                     dhtest(programParams);
+                }
+                else if(cur == "-force")
+                {
+                    programParams.force = true;
                 }
                 else if(cur == "bundle" || cur == "b")
                 {

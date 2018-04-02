@@ -477,6 +477,9 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
     int blockSize = getCipherBlockSize(fp.cp.cipherType) / 8;
     createFileKey(fp);
 
+    // Sets the extension count.
+    fp.extensions = extensions.size();
+
     unsigned char* hash;
     crypto_hash* bc;
     
@@ -484,6 +487,12 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
 
     hmac mac(*bc, (unsigned char*)fp.key.c_str(), keySize);
     mac.init();
+
+    // Include the extension count in the hash.
+    // this is a File v3 Format adjustment. 
+    // All the other parameters don't need to be included due to the fact that they're
+    // integral to the decryption process.
+    mac.update((unsigned char*)&fp.extensions, sizeof(fp.extensions));
 
     // Hashes each of the extensions.
     for(int i = 0; i < extensions.size(); i++)
@@ -800,7 +809,6 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
-    
     // Gets the file size (hopefully)
     int fsize = 0;
     fi.seekg(0, ios::end);
@@ -899,6 +907,15 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     hmac mac(*hc, okey, keysize);
     mac.init();
 
+    if(fp.version >= 3)
+    {
+        mac.update((unsigned char*)&fp.extensions, sizeof(fp.extensions));
+    }
+    /* else if(fp.version == 2)
+    {
+        // Everything less than v3 will eventually be rejected.
+    } */
+    
     // Use the Key.
     getCipher(fp.cp.cipherType, bc);
     ctr c2(*bc);
