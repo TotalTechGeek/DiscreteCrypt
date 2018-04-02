@@ -272,7 +272,6 @@ void help2()
     cout << "-dhtest" << "\t\t\t\t\t\t" << "Tests the currently loaded parameters." << endl;
 
 
-    // cout << "exc" << " " << "Extracts a contact from a file." << endl;
     cout << "-pc <contact file>" << "\t\t\t\t" << "Prints contact information." << endl;
     cout << "-pe <encrypted file>" << "\t\t\t\t" << "Prints encrypted file information." << endl;
     cout << "------" << endl;
@@ -282,7 +281,7 @@ void help2()
     cout << "--drop" << "\t" << "Drops all messages and OTR prompts." << endl;
     cout << "-exdhc <contact file> <out>" << "\t" << "Extracts DH Parameters from a contact file." << endl;
     cout << "-exdhe <contact file> <out>" << "\t" << "Extracts DH Parameters from an encrypted file." << endl;
-    
+    cout << "-exc <encrypted file> <out contact file>" << "\t" << "Extracts a contact from an encrypted file." << endl;
 }
 
 
