@@ -263,15 +263,25 @@ void help2()
     cout << "-ldh <dh file>" << "\t\t\t\t\t" << "Loads discrete log parameters from a file." << endl;
     cout << "-from <contact file>" << "\t\t\t\t" << "Sets which contact files are from." << endl;
     cout << "-sign <contact file> <in file> <out file>" << "\t" << "Signs a file using a contact." << endl;
+    cout << "-bundle <contact file> <in file> <out file>" << "\t" << "Signs a file using a contact, and creates a bundle from them." << endl;
+    cout << "-debundle <bundle file> <out file>" << "\t\t" << "Verifies a file's signature, and exports the original file from the bundle." << endl;
     cout << "-verify <sig file> <out file>" << "\t\t\t" << "Verifies a file from its signature." << endl;
     
     cout << "-pdh" << "\t\t\t\t\t\t" << "Prints discrete log parameters." << endl;
     cout << "-pldh" << "\t\t\t\t\t\t" << "Prints discrete log parameters from file." << endl;
     cout << "-dhtest" << "\t\t\t\t\t\t" << "Tests the currently loaded parameters." << endl;
 
+
     // cout << "exc" << " " << "Extracts a contact from a file." << endl;
     cout << "-pc <contact file>" << "\t\t\t\t" << "Prints contact information." << endl;
     cout << "-pe <encrypted file>" << "\t\t\t\t" << "Prints encrypted file information." << endl;
+    cout << "------" << endl;
+    cout << "--prompt[-hidden] <question>" << "\t" << "Allows you to add an OTR-Style prompt for symmetric authentication." << endl;
+    cout << "--add-message[-hidden]" << "\t" << "Allows you to add a message to output during the decryption process" << endl;
+    cout << "--exportSigners <out>" << "\t" << "If an encrypted file is asymmetrically signed, this parameter will export its signers." << endl;
+    cout << "--drop" << "\t" << "Drops all messages and OTR prompts." << endl;
+    cout << "-exdhc <contact file> <out>" << "\t" << "Extracts DH Parameters from a contact file." << endl;
+    cout << "-exdhe <contact file> <out>" << "\t" << "Extracts DH Parameters from an encrypted file." << endl;
     
 }
 
