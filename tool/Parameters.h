@@ -58,6 +58,18 @@ class DHParameters
     DO(Twofish128,      0130,   twofish128) \
     DO(Twofish192,      0131,   twofish192) \
     DO(Twofish256,      0132,   twofish256) \
+    DO(Mars128,         0140,   mars128) \
+    DO(Mars160,         0141,   mars160) \
+    DO(Mars192,         0142,   mars192) \
+    DO(Mars224,         0143,   mars224) \
+    DO(Mars256,         0144,   mars256) \
+    DO(Mars384,         0145,   mars384) \
+    DO(Mars448,         0146,   mars448) \
+    DO(Cast6_128,       0150,   cast6_128) \
+    DO(Cast6_160,       0151,   cast6_160) \
+    DO(Cast6_192,       0152,   cast6_192) \
+    DO(Cast6_224,       0153,   cast6_224) \
+    DO(Cast6_256,       0154,   cast6_256) \
     DO(Kuznyechik,      0200,   kuznyechik) \
     DO(Aria128,         0210,   aria128) \
     DO(Aria192,         0211,   aria192) \
@@ -72,7 +84,8 @@ class DHParameters
     DO(Kalyna128_256,   0241,   kalyna128_256) \
     DO(Kalyna256_256,   0242,   kalyna256_256) \
     DO(Kalyna256_512,   0243,   kalyna256_512) \
-    DO(Kalyna512_512,   0244,   kalyna512_512) 
+    DO(Kalyna512_512,   0244,   kalyna512_512) \
+    DO(SM4,             0250,   sm4)
 
 #define DO2(X, Y, Z, DO) \
     DO(X ## _224, Y ## 0, Z(224)) \
