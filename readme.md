@@ -22,3 +22,6 @@ This tool is developed to compile with g++, clang (aliased as g++), and Mingw32_
 MSVC support may be added in the future.
 
 --- 
+## Tool Documentation
+
+The documentation for the tool is avaiable [here](http://totaltechgeek.github.io/DiscreteCrypt/DiscreteCrypt%20Documentation.html).
