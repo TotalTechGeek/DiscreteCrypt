@@ -726,8 +726,12 @@ int main(int argc, char**args)
     }
     else
     {    
+
         cout << "> ";
         getline(cin, command);
+        
+        // This is the old cli, this will be removed soon.
+        
         while(command != "quit" && command != "exit")
         {
             // This is temporary.

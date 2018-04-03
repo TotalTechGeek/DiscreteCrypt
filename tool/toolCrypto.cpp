@@ -140,6 +140,7 @@ std::string getPassword()
 #endif
 
 
+// Uses an integer's data and the file's hmac to compute an Scrypt hash to a specified length.
 std::string intToScrypt(const CryptoPP::Integer& i, const ScryptParameters& sp, int keyLen, const FileProperties& fp)
 {
     unsigned char* dub1Out = new unsigned char[i.ByteCount()]();
@@ -150,6 +151,7 @@ std::string intToScrypt(const CryptoPP::Integer& i, const ScryptParameters& sp, 
     return getScrypt(pass, fp.hash, sp.N, sp.P, sp.R, keyLen);
 }
 
+// Converts an integer to a raw string.
 std::string cryptoIntToString(const CryptoPP::Integer& n)
 {
     unsigned char* buf = new unsigned char[n.ByteCount()];
@@ -160,7 +162,7 @@ std::string cryptoIntToString(const CryptoPP::Integer& n)
     return res;
 }
 
-
+// Converts a raw string to an integer.
 CryptoPP::Integer stringToCryptoInt(const std::string& s)
 {
     CryptoPP::Integer res;
@@ -168,6 +170,7 @@ CryptoPP::Integer stringToCryptoInt(const std::string& s)
     return res;
 }
 
+// Computes a private key from the password, salt, and parameters.
 CryptoPP::Integer passwordToPrivate(const std::string& pass, const std::string& salt, const ScryptParameters& sp)
 {   
     std::string scr = getScrypt(pass, salt, sp.N, sp.P, sp.R, sp.len);
@@ -177,6 +180,7 @@ CryptoPP::Integer passwordToPrivate(const std::string& pass, const std::string& 
 }
     
 
+// Used to create a brand new contact
 CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp)
 {
     using namespace std;
@@ -209,9 +213,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     salt.append(saltC, SALT_SIZE);
     delete[] saltC;
 
-    CryptoPP::Integer priv;
-    std::string scr = getScrypt(password, salt, sp.N, sp.P, sp.R, sp.len);
-    priv.Decode((unsigned char*)scr.c_str(), scr.length());
+    CryptoPP::Integer priv = passwordToPrivate(password, salt, sp);
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
     PersonParameters p(identity, salt, pub);
@@ -223,6 +225,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     return priv; 
 }
 
+// Used to create a contact with some existing parameters.
 CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp, const std::string& identity, std::string& password)
 {
     using namespace std;
@@ -247,9 +250,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     salt.append(saltC, SALT_SIZE);
     delete[] saltC;
 
-    CryptoPP::Integer priv;
-    std::string scrypt = getScrypt(password, salt, sp.N, sp.P, sp.R, sp.len);
-    priv.Decode((unsigned char*)scrypt.c_str(), scrypt.length());
+    CryptoPP::Integer priv = passwordToPrivate(password, salt, sp);
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
     PersonParameters p(identity, salt, pub);
@@ -260,14 +261,13 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     return priv; 
 }
 
-
+// Used to generate a contact from an already existing contact, 
+// This is sometimes necessary because another individual might be using another set of DHParameters.
 CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const ScryptParameters& sp, Contact* contact, std::string& password)
 {
     using namespace std;
   
-    CryptoPP::Integer priv;
-    std::string scrypt = getScrypt(password, contact->person.salt, sp.N, sp.P, sp.R, sp.len);
-    priv.Decode((unsigned char*)scrypt.c_str(), scrypt.length());
+    CryptoPP::Integer priv = passwordToPrivate(password, contact->person.salt, sp);
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
     PersonParameters p(contact->person.identity, contact->person.salt, pub);
@@ -278,7 +278,7 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     return priv; 
 }
 
-// This code will probably be replaced.
+// Gets the cipher's name.
 std::string getCipherName(CipherType p)
 {
     switch(p)
@@ -288,7 +288,7 @@ std::string getCipherName(CipherType p)
     }
 }
 
-// This is somewhat of a factory design pattern.
+// Gets the cipher to decrypt with.
 void getCipher(CipherType p, cppcrypto::block_cipher*& bc)
 {
     using namespace cppcrypto;
@@ -301,6 +301,7 @@ void getCipher(CipherType p, cppcrypto::block_cipher*& bc)
     }
 }
 
+// Gets the hash function.
 void getHash(HashType h, cppcrypto::crypto_hash*& bc)
 {
     using namespace cppcrypto;
@@ -313,7 +314,7 @@ void getHash(HashType h, cppcrypto::crypto_hash*& bc)
     }
 }
 
-
+// Gets the hash's name.
 std::string getHashName(HashType h)
 {
     switch(h)
@@ -324,6 +325,7 @@ std::string getHashName(HashType h)
     }
 }
 
+// Gets the output size of the hash.
 int getHashOutputSize(HashType h)
 {
     int res;
@@ -335,6 +337,7 @@ int getHashOutputSize(HashType h)
     return res;
 }
 
+// Gets the size of the cipher's key.
 int getCipherKeySize(CipherType p)
 {
     int res;
@@ -346,6 +349,7 @@ int getCipherKeySize(CipherType p)
     return res;
 }
 
+// Gets the block size of the cipher.
 int getCipherBlockSize(CipherType p)
 {
     int res;
@@ -357,6 +361,7 @@ int getCipherBlockSize(CipherType p)
     return res;
 }
 
+// Writes an object to a file.
 template <class T>
 void encodeFile(T& c, const std::string& fileName)
 {
@@ -373,7 +378,7 @@ void encodeFile(T& c, const std::string& fileName)
     f.close();
 }
 
-
+// Reads an object from a file.
 template <class T>
 void decodeFile(T& c, const std::string& fileName)
 {
@@ -390,6 +395,7 @@ void decodeFile(T& c, const std::string& fileName)
     fi.close();
 }
 
+// Decodes the encrypted file. (Unencrypted Segments)
 void decodeEncrypted(std::vector<Exchange>& exchanges, FileProperties& fp, const std::string& fileName)
 {
     using namespace std;
@@ -438,6 +444,8 @@ void decodeEncrypted(std::vector<Exchange>& exchanges, FileProperties& fp, const
     fi.close();
 }
 
+// Pad an HMAC with random data if the hmac is less than the block size.
+// This is necessary for when the hash output size is less than the block size of the cipher.
 std::string hashPad(std::string hash, int blockSize)
 {
     if(hash.length() < blockSize)
@@ -463,10 +471,8 @@ void createFileKey(FileProperties& fp)
     delete[] key;
 }
 
-// Todo: Create a new method to compute a hash of the file for the extensions.
-// Since extensions will be included in the encrypted payload, HMACs will not be necessary
-// even if there were a way to extract a hash from a signature.
 
+// Computes an hmac for a file.
 void hmacFile(const std::string& filename, const std::vector<DataExtension>& extensions, FileProperties& fp)
 {
     using namespace cppcrypto;
@@ -483,6 +489,7 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
     unsigned char* hash;
     crypto_hash* bc;
     
+    // Gets the hash function for the hmac
     getHash(fp.ht, bc);
 
     hmac mac(*bc, (unsigned char*)fp.key.c_str(), keySize);
@@ -500,11 +507,12 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
         string output = extensions[i].out();
         int16_t len = (int16_t)output.length();
 
-        // Write the extensions
+        // Write the extensions to the hmac
         mac.update((unsigned char*)&len, sizeof(int16_t));
         mac.update((unsigned char*)&output[0], len);
     }
 
+    // opens the file to hmac
     ifstream fi(filename, ios::binary);
     
     hash = new unsigned char[bc->hashsize() / 8]();
@@ -513,9 +521,10 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
 
     char* block = new char[x]();
 
+    // Reads in the entire file and hashes it.
     if(fi.good())
     {
-        // Gets the file size (hopefully)
+        // Gets the file size 
         int fsize = 0;
         fi.seekg(0, ios::end);
         fsize = (int)fi.tellg() - fsize;
@@ -537,6 +546,7 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
         mac.final(hash);
     }
     
+    // Set the FP's hmac.
     fp.hash = "";
     fp.hash.append((char*)hash, bc->hashsize() / 8);
     fp.hash = hashPad(fp.hash, blockSize);
@@ -568,8 +578,7 @@ void bundleFile(const std::string& fileName, const std::string& outputFile, cons
 
     char buf[1];
 
-    // I'm just going to do this quickly 
-    
+    // This is a quick hack to write the file out.
     inFile.read(buf, 1);
     while(!inFile.eof())
     {
@@ -581,6 +590,7 @@ void bundleFile(const std::string& fileName, const std::string& outputFile, cons
     outFile.close();
 }
 
+// Extracts the file from a signature bundle and verifies it.
 AsymmetricAuthenticationSignature debundleFile(const std::string& fileName, const std::string& outputFile)
 {
     using namespace std;
@@ -602,6 +612,7 @@ AsymmetricAuthenticationSignature debundleFile(const std::string& fileName, cons
     AsymmetricAuthenticationSignature aas;
     aas.parse(in);
 
+    // Quick hack to write the file out.
     file.read(buf, 1);
     while(!file.eof())
     {
@@ -618,20 +629,27 @@ AsymmetricAuthenticationSignature debundleFile(const std::string& fileName, cons
 }
 
 
+// Encrypts a file.
 void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password, Contact* con)
 {
     using namespace std;
     using namespace cppcrypto;
     using CryptoPP::Integer;
+
+    // Opens the files.
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
+    // Gets the block cipher to encrypt the key with.
     block_cipher *bc;
     getCipher(fp.cp.cipherType, bc);
 
+    // Grabs the block size and key size for the cipher.
+    // Divisible by 8 because we're actually getting byte size (as opposed to bit size).
     int blocksize = (int)bc->blocksize() / 8;
     int keysize = (int)bc->keysize() / 8;
 
+    // Gets the file parameters output data.
     string output = fp.out();
     int16_t len = (int16_t)output.length();
 
@@ -640,11 +658,14 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     fo.write((char*)&len, sizeof(int16_t));
     fo.write(&output[0], len);
 
+
+    // List of exchanges to be computed from the contacts
     vector<Exchange> exchanges; 
         
     // Bad code, in need of refactoring.   
     if(!con)
     {
+        // Creates an anonymous contact for each of the recipients, then computes an exchange for each of them.
         std::string anon("Anonymous");
         for(int i = 0; i < recipients.size(); i++)
         {
@@ -658,6 +679,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     } 
     else
     {
+        // Creates (or clones) the input contact for each of the recipients, and computes an exchange for each of them.
         for(int i = 0; i < recipients.size(); i++)
         {
             Contact sender; 
@@ -680,58 +702,74 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         fo.write(&output[0], len);
     }
 
-    // Using the file's hash at the moment.
+    // Grab the file's hmac.
     std::string h = fp.hash;
+
+    // If the hmac is longer than the file's block size, truncate.
     while(h.length() > blocksize) h.pop_back();
+
+    // Create an initialization vector from the hmac.
     unsigned char* iv = (unsigned char*)&h[0];
 
+    // The size of the buffer used to encrypt the key with.
+    // Computed in this way to make it divisible by the block size.
     int k = keysize + (blocksize - keysize % blocksize);
+    
+    // Points to the key to encrypt the payload with.
     unsigned char* ikey = (unsigned char*)&fp.key[0];
 
+    // For each of the exchanges, encrypt the key used for payload encryption.
     for(int i = 0; i < exchanges.size(); i++)
     {
+        // Derives a key from the exchange to encrypt the payload key with. 
         string scr = intToScrypt(exchanges[i].computed, exchanges[i].sp, getCipherKeySize(fp.cp.cipherType), fp);
         const unsigned char* key = (unsigned char*)scr.c_str();
 
+        // Sets up a block cipher using the exchange key to encrypt the payload key.
         ctr c(*bc);
         c.init(key, keysize, iv, blocksize);
     
+        // Output buffer for encryption.
         unsigned char *okey = new unsigned char[k]();
 
+        // Encrypts the key (fully).
         for(int i = 0; i < keysize; i += blocksize)
         {
             c.encrypt(ikey + i, blocksize, okey + i);
         }
 
+        // Writes the encrypted key to a file.
         fo.write((char*)okey, keysize);
 
+        // Establishes a new block cipher.
         delete bc;
         getCipher(fp.cp.cipherType, bc);
         delete[] okey;
     }
     
-    // Use the Key.
+    // Sets up a new block cipher using the Payload Key.
     ctr c2(*bc);
     c2.init(ikey, keysize, iv, blocksize);
     
 
-    // Gets the file size (hopefully)
+    // Gets the file size
     int fsize = 0;
     fi.seekg(0, ios::end);
     fsize = (int)fi.tellg() - fsize;
     fi.seekg(0, ios::beg);
 
 
+    // Sets up the file buffers.
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
-
+    // Tests the file
     if(fi.good() && !fi.bad())
     {
 
         std::string out("");
         
-        // Writes each of the extensions
+        // Exports each of the extensions
         for(int i = 0; i < extensions.size(); i++)
         {
             output = extensions[i].out();
@@ -742,7 +780,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
             out.append(&output[0], len);
         }
 
-        // Writes out every full block
+        // Writes out every full block of extension data.
         while(out.length() > blocksize)
         {
             c2.encrypt((unsigned char*)&out[0], blocksize, (unsigned char*)outBuf);
@@ -750,14 +788,16 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
             out = out.substr(blocksize);
         }
 
-        // This should work but we will see. 
+        // If there is still extension data
         if(out.length())
         {
+            // Populate the "to-encrypt" buffer
             for(int i = 0; i < out.length(); i++)
             {
                 inBuf[i] = out[i];
             }
 
+            // If there is more than enough file data to fill the rest of the buffer
             // 16 >= 32 - 16
             if(fsize >= blocksize - out.length())
             {
@@ -767,6 +807,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
                 fsize -= blocksize - out.length();
             }
             // 15 >= 32 - 16
+            // otherwise, fill the rest of the buffer with the remaining file data.
             else
             {
                 fi.read(inBuf + out.length(), fsize);
@@ -776,7 +817,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
             }
         }
 
-
+        // While there is enough file data to encrypt a whole block
         while(fsize > blocksize)
         {
             fi.read(inBuf, blocksize);
@@ -785,6 +826,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
             fsize -= blocksize;
         }
 
+        // Encrypt any remaining data.
         if(fsize)
         {
             fi.read(inBuf, fsize);
@@ -793,19 +835,25 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         }
     }
 
+    // cleanup
     delete bc;
     delete[] inBuf;
     delete[] outBuf;
+
+    // close files
     fi.close();
     fo.close();
 }
 
 
+// Decrypts a file.
 char decryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, std::vector<DataExtension>& extensions, const FileProperties& fp, const std::string& password, int person)
 {
     using namespace std;
     using namespace cppcrypto;
     using CryptoPP::Integer;
+
+    // Open the files.
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
@@ -815,9 +863,9 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     fsize = (int)fi.tellg() - fsize;
     fi.seekg(0, ios::beg);
 
-    char* lenRead = new char[sizeof(int16_t)];
+    char lenRead[sizeof(int16_t)];
 
-    //skip the header
+    // Used to skip the FP Header.
     fi.read(lenRead, sizeof(int16_t));
     int16_t len = *(int16_t*)lenRead;
     fi.ignore(len);
@@ -836,31 +884,40 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         fsize -= sizeof(int16_t);
     }
 
-    delete[] lenRead;
 
+    // Sets up block cipher and hash algorithm.
     block_cipher *bc;
     crypto_hash *hc; 
     getHash(fp.ht, hc);
     getCipher(fp.cp.cipherType, bc);
 
+    // Sets up the hash output.
     unsigned char* hash = new unsigned char[hc->hashsize() / 8];
     
+    // Gets the byte size of the cipher's block and key sizes.
     int blocksize = (int)bc->blocksize() / 8;
     int keysize = (int)bc->keysize() / 8;
 
-    // Using the file's hash at the moment.
+    // Gets the file's hmac
     std::string h = fp.hash;
+
+    // Truncates the hmac if it is greater than the cipher's key size.
     while(h.length() > blocksize) h.pop_back();
+
+    // Use the hmac as an initialization vector.
     unsigned char* iv = (unsigned char*)&h[0];
 
+    // Sets up the decryption buffers.
     char* inBuf = new char[blocksize];
     char* outBuf = new char[blocksize];
 
-    
+    // k value used to decrypt the key evenly with the block size
     int k = keysize + (blocksize - keysize % blocksize);
     
+    // key decryption buffers
     unsigned char* ikey = new unsigned char[k](), *okey = new unsigned char[k]();
 
+    // Grabs the public key from the selected exchange. 
     Exchange ex = exchanges[person/2];
     Integer pub; 
     string salt;
@@ -877,19 +934,22 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         pub = ex.bob.publicKey;
     }
 
-    Integer priv;
-    string scr = getScrypt(password, salt, ex.sp.N, ex.sp.P, ex.sp.R, ex.sp.len);
-    priv.Decode((unsigned char*)scr.c_str(), ex.sp.len);
-
+    // Computes the private key for the person that is decrypting
+    Integer priv = passwordToPrivate(password, salt, ex.sp);
+    
+    // Computes the exchange
     Integer p = a_exp_b_mod_c(pub, priv, ex.dh.mod());
-    scr = intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp);
+
+    // Derives the decryption key from the exchange.
+    string scr = intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp);
     unsigned char* key = (unsigned char*)scr.c_str();
 
+    // Use the exchange's decryption key to establish a set up a block cipher.
     ctr c(*bc);
     c.init(key, keysize, iv, blocksize);
 
 
-    // This will be the difficult part.
+    // Read in the selected key, and ignore the others.
     for(int i = 0; i < exchanges.size(); i++)
     {
         if(i == (person/2)) fi.read((char*)ikey, keysize);
@@ -897,30 +957,32 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         fsize -= keysize;
     }
 
+    // Decrypts the payload key.
     for(int i = 0; i < keysize; i += blocksize)
     {
         c.decrypt(ikey + i, blocksize, okey + i);
     }
 
+    // Delete the block cipher.
     delete bc;
 
+    // Sets up the payload authenticator 
     hmac mac(*hc, okey, keysize);
     mac.init();
 
+    // Used for checking the number of extensions.
+    // This will soon be mandatory. (No if-statement required)
     if(fp.version >= 3)
     {
         mac.update((unsigned char*)&fp.extensions, sizeof(fp.extensions));
     }
-    /* else if(fp.version == 2)
-    {
-        // Everything less than v3 will eventually be rejected.
-    } */
     
-    // Use the Key.
+    // Establish the payload key.
     getCipher(fp.cp.cipherType, bc);
     ctr c2(*bc);
     c2.init(okey, keysize, iv, blocksize);
 
+    // File test
     if(fi.good() && !fi.bad())
     {
         int extracted = 0;
@@ -928,71 +990,93 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         std::string out;
         std::string buf;
 
+        // While there are full blocks to decrypt
         while(fsize > blocksize)
         {
+            // Read in the block, decrypt it, and add it to the hmac.
             fi.read(inBuf, blocksize);
             c2.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
             mac.update((unsigned char*)outBuf, blocksize);
 
-            // Hopefully this will work.
+            // If there is still data to extract as an extension,
             if(extracted < fp.extensions)
             {
+                // append it to the extension buffer
                 buf.append(outBuf, blocksize);
+
+                // if the extension length hasn't been parsed,
                 if(left == -1)
                 {
+                    // parse the extension length
                     left = *(int16_t*)&buf[0];
                 }
 
+                // If we have enough of the data to parse into an extension,
                 if(left + sizeof(int16_t) <= buf.length())
                 {
+                    // remove it from the buffer, then increment the number of extensions read.
                     out.append(&buf[0], left + sizeof(int16_t));
                     buf = buf.substr(left + sizeof(int16_t));
                     left = -1;
                     extracted++;
                 }
 
+                // If we've read in all of the extensions, just write the remaining data in the buffer to the output file.
                 if(extracted == fp.extensions)
                 {
-                    fo.write(&buf[0], buf.length());    
+                    fo.write(&buf[0], buf.length());
                 }
             }
             else
             {
+                // Write the full block to the output file.
                 fo.write(outBuf, blocksize);
             }
+
+            // Removes an entire block size from the fsize remaining.
             fsize -= blocksize;
         }
 
+        // If there is still more data to decrypt
         if(fsize)
         {
+            // Read in the data left, decrypt it, and add it to the hmac.
             fi.read(inBuf, fsize);
             c2.decrypt((unsigned char*)inBuf, blocksize, (unsigned char*)outBuf);
             mac.update((unsigned char*)outBuf, fsize);
             
-            // Hopefully this will work.
+            // If there are extensions to extract, 
             if(extracted < fp.extensions)
             {
+                // append it to an extension buffer
                 buf.append(outBuf, fsize);
+
+                // if the extension length hasn't been parsed,
                 if(left == -1)
                 {
+                    // parse the extension length
                     left = *(int16_t*)&buf[0];
                 }
 
+                 // If we have enough of the data to parse into an extension,
                 if(left + sizeof(int16_t) <= buf.length())
                 {
+                    // remove it from the buffer, then increment the number of extensions read.
                     out.append(&buf[0], left + sizeof(int16_t));
                     buf = buf.substr(left + sizeof(int16_t));
                     left = -1;
                     extracted++;
                 }
 
+                 // If we've read in all of the extensions, just write the remaining data in the buffer to the output file.
                 if(extracted == fp.extensions)
                 {
-                    fo.write(&buf[0], buf.length());    
+                    fo.write(&buf[0], buf.length()); 
                 }
             }
             else
             {
+                // Write the rest of the data to the output file.
                 fo.write(outBuf, fsize);
             }
         }
@@ -1011,14 +1095,19 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         
     }
 
+
+    // Outputs the hmac
     mac.final(hash);
     char valid = 1;
 
+    // Compares the hmacs.
     for(int i = 0; i < hc->hashsize() / 8; i++)
     {
         valid = valid && hash[i] == (unsigned char)fp.hash[i];
     }
 
+
+    // Cleanup
     delete hc;
     delete bc;
     delete[] ikey;
@@ -1026,6 +1115,8 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     delete[] hash;
     delete[] inBuf;
     delete[] outBuf;
+
+    // Closes the file.
     fi.close();
     fo.close();
 
@@ -1033,6 +1124,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 }
 
 
+// Template function declarations.
 template void decodeFile<Contact>(Contact& c, const std::string& fileName);
 template void decodeFile<DHParameters>(DHParameters& c, const std::string& fileName);
 template void decodeFile<AsymmetricAuthenticationSignature>(AsymmetricAuthenticationSignature& c, const std::string& fileName);

@@ -61,9 +61,6 @@ std::string hashPad(std::string hash, int blockSize);
 // Creates a key for the file.
 void createFileKey(FileProperties& fp);
 
-// Todo: Create a new method to compute a hash of the file for the extensions.
-// Since extensions will be included in the encrypted payload, HMACs will not be necessary
-// even if there were a way to extract a hash from a signature.
 
 void hmacFile(const std::string& filename, const std::vector<DataExtension>& extensions, FileProperties& fp);
 
