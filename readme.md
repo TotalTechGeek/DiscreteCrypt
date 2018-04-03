@@ -1,8 +1,10 @@
 # DiscreteCrypt
----
+
 ![Imgur](https://i.imgur.com/9j1u5T6.png)
 
 This tool is an alternative to software like PGP, with a focus on Discrete Log Cryptography. The algorithm is currently in v2.1, in its first release.
+
+The tool features powerful authenticated encryption, dozens of strong symmetric ciphers and hash algorithms, future-proof design choices, and a variety of other features (like OTR-Style symmetric authentication, anonymous senders, etc). 
 
 ## To Build
 
@@ -21,7 +23,7 @@ This tool is developed to compile with g++, clang (aliased as g++), and Mingw32_
 
 MSVC support may be added in the future.
 
---- 
-## Tool Documentation
 
-The documentation for the tool is avaiable [here](http://totaltechgeek.github.io/DiscreteCrypt/DiscreteCrypt%20Documentation.html).
+## User Documentation
+
+The documentation for the tool is available [here](http://totaltechgeek.github.io/DiscreteCrypt/DiscreteCrypt%20Documentation.html).
