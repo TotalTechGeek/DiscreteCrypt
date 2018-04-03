@@ -90,19 +90,18 @@ std::string SymmetricAuthenticationExtension::hmacFile(const std::string& filena
     return res;
 }
 
-    void SymmetricAuthenticationExtension::parse(const DataExtension& d)
-    {
-        using namespace std;
-        int offset = 0;
-
-        int16_t len = *(int16_t*)&d.data[offset];
-        offset += sizeof(int16_t);
-       
-        _prompt = d.data.substr(offset, len);
-        offset += len;
-        
-        len = *(int16_t*)&d.data[offset];
-        
-        offset += sizeof(int16_t);
-        data = d.data.substr(offset, len);
-    }
+void SymmetricAuthenticationExtension::parse(const DataExtension& d)
+{
+    using namespace std;
+    int offset = 0;
+    int16_t len = *(int16_t*)&d.data[offset];
+    offset += sizeof(int16_t);
+   
+    _prompt = d.data.substr(offset, len);
+    offset += len;
+    
+    len = *(int16_t*)&d.data[offset];
+    
+    offset += sizeof(int16_t);
+    data = d.data.substr(offset, len);
+}

@@ -12,8 +12,11 @@
 #define aes192 rijndael128_192
 #define aes128 rijndael128_128
 
+
+// Used to randomly generate a password.
 static const char PWD[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$^&%*()-_[]{};:\\/<>,.?'~=+";
 
+// Gets the Scrypt from the given parameters.
 std::string getScrypt(const std::string& password, const std::string& salt, int N, int p, int r, int len)
 {
     using namespace cppcrypto;
@@ -186,19 +189,24 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
     using namespace std;
     std::string identity, password;
 
+    // Requests an identity
     cout << "Identity: ";
     getline(cin, identity);
 
+    // Sets an identity if none provided.
     if(identity == "") identity = "Anonymous";
 
+    // Gets a password
     cout << "Password: ";
     password = getPassword();
 
     const int SALT_SIZE = 32;
     char* saltC = new char[SALT_SIZE]();
 
+    // If the user elected not to provide a password
     if(password == "")
     {
+        // Randomly generate a password
         CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
         for(int i = 0; i < SALT_SIZE; i++)
         {
@@ -207,17 +215,22 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
         cout << "Using Password: " << password << endl;
     }
 
+    // Generates a random salt
     CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
-    
+
+    // Convert the c_str to a viable string.
     std::string salt;
     salt.append(saltC, SALT_SIZE);
     delete[] saltC;
 
+    // Computes a private and public key
     CryptoPP::Integer priv = passwordToPrivate(password, salt, sp);
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
+    // Create the person
     PersonParameters p(identity, salt, pub);
     
+    // Create the contact.
     con.person = p;
     con.sp = sp;
     con.dh = dh;
@@ -230,12 +243,13 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
 {
     using namespace std;
   
-
     const int SALT_SIZE = 32;
     char* saltC = new char[SALT_SIZE]();
 
+    // If there was no password provided, 
     if(password == "")
     {
+        // Randomly generate a password
         CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
         for(int i = 0; i < SALT_SIZE; i++)
         {
@@ -244,15 +258,19 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
         cout << "Using Password: " << password << endl;
     }
 
+    // Randomly generate salt
     CryptoPP::OS_GenerateRandomBlock(false, (unsigned char*)saltC, SALT_SIZE);
     
+    // Create a salt string
     std::string salt;
     salt.append(saltC, SALT_SIZE);
     delete[] saltC;
 
+    // Computes the private and public key
     CryptoPP::Integer priv = passwordToPrivate(password, salt, sp);
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
+    // Creates the contact
     PersonParameters p(identity, salt, pub);
     con.person = p;
     con.sp = sp;
@@ -267,9 +285,11 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
 {
     using namespace std;
   
+    // Generate a private and public key.
     CryptoPP::Integer priv = passwordToPrivate(password, contact->person.salt, sp);
     CryptoPP::Integer pub = a_exp_b_mod_c(dh.gen(), priv, dh.mod());
 
+    // Create the contact
     PersonParameters p(contact->person.identity, contact->person.salt, pub);
     con.person = p;
     con.sp = sp;
