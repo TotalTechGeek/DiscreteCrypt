@@ -27,3 +27,7 @@ MSVC support may be added in the future.
 ## User Documentation
 
 The documentation for the tool is available [here](http://totaltechgeek.github.io/DiscreteCrypt/DiscreteCrypt%20Documentation.html).
+
+## Download
+
+Check the releases tab [here](https://github.com/TotalTechGeek/DiscreteCrypt/releases). 
