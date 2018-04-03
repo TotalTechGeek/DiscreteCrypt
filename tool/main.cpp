@@ -233,33 +233,6 @@ void previewContact(const string& contactFile)
 
 void help()
 {
-    cout << "Note that this program is really clunky and more of a proof of concept" << endl;
-    cout << "Enter commands alone. No spaces. This is not a sophisticated program" << endl;
-    cout << "c" << "\t\t" << "Creates a contact." << endl;
-    cout << "to" << "\t\t" << "Encrypts file for a contact." << endl;
-    cout << "open" << "\t\t" << "Opens a file" << endl;
-    cout << "check" << "\t\t" << "Checks if your password matches a contact file." << endl;
-    cout << "ciph" << "\t\t" << "Sets a cipher used." << endl;
-    cout << "ciphlist" << "\t" << "Prints out all the ciphers available." << endl;
-    cout << "hash" << "\t\t" << "Sets the hash used." << endl;
-    cout << "hashlist" << "\t" << "Prints out all the hash functions available." << endl;
-    cout << "sign" << "\t\t" << "Asymmetrically signs a file using a contact." << endl;
-    cout << "verify" << "\t\t" << "Verifies a file from its signature file." << endl;
-    cout << "dh" << "\t\t" << "Lets you set Discrete Log Parameters." << endl;
-    cout << "ldh" << "\t\t" << "Loads discrete log parameters from a file." << endl;
-    cout << "sdh" << "\t\t" << "Saves discrete log parameters to a file." << endl;
-    cout << "eldh" << "\t\t" << "Loads discrete log parameters from an encrypted file." << endl;
-    cout << "cldh" << "\t\t" << "Loads discrete log parameters from a contact file." << endl;
-    cout << "pdh" << "\t\t" << "Prints discrete log parameters." << endl;
-    cout << "exc" << "\t\t" << "Extracts a contact from a file." << endl;
-    cout << "pc" << "\t\t" << "Prints contact information." << endl;
-    cout << "pe" << "\t\t" << "Prints encrypted file information." << endl;
-    cout << "exit" << "\t\t" << "Exits the program." << endl;
-}
-
-
-void help2()
-{
     cout << "-contact <output file>" << "\t\t\t\t" << "Creates a contact." << endl;
     cout << "-to <contact files> <input file> <output file>" << "\t" << "Encrypts file for a contact." << endl;
     cout << "-open <file> <output file>" << "\t\t\t" << "Opens a file" << endl;
@@ -462,7 +435,6 @@ void ciph(ProgramParams& programParams, const string& ciph)
     cout << getCipherName(programParams.cp.cipherType) << endl; 
 }
 
-
 void hashCommand(ProgramParams& programParams, const string& hash)
 {
     programParams.h = (HashType)stoi(hash, 0, 8);
@@ -556,7 +528,7 @@ int main(int argc, char**args)
                 }
                 else if(cur == "h" || cur == "help")
                 {
-                    help2();
+                    help();
                 }
                 else if(cur == "dhtest")
                 {
@@ -726,209 +698,7 @@ int main(int argc, char**args)
     }
     else
     {    
-
-        cout << "> ";
-        getline(cin, command);
-        
-        // This is the old cli, this will be removed soon.
-        
-        while(command != "quit" && command != "exit")
-        {
-            // This is temporary.
-            if(command == "help" || command == "h")
-            {
-                help();
-            }
-            else if(command == "from")
-            {
-                getline(cin, programParams.from);
-                programParams.from.append(".contact");
-            }
-            else if(command == "c" || command == "contact")
-            {
-                cout << "Out File: ";
-                getline(cin, command);
-                command.append(".contact");
-
-                contact(programParams, command);
-            }
-            // sets the cipher mode
-            else if(command == "ciph")
-            {
-                cout << "Cipher Mode: ";
-                getline(cin, command);
-                ciph(programParams, command);
-            }
-            else if(command == "hash")
-            {
-                cout << "Hash Mode: ";
-                getline(cin, command);
-                hashCommand(programParams, command);
-            }
-            else if(command == "hashlist")
-            {
-               hashlist();
-            }
-            else if(command == "verify")
-            {
-                string sig, file;
-
-                cout << "Signature File: ";
-                getline(cin, sig);
-                
-                cout << "File: ";
-                getline(cin, file);
-                
-                verify(programParams, sig, file);
-            }
-            else if(command == "sign")
-            {
-                string from, file, ofile;
-
-                cout << "Contact File: ";
-                getline(cin, from);
-                from.append(".contact");
-
-                cout << "File: ";
-                getline(cin, file);
-                
-                cout << "Out File: ";
-                getline(cin, ofile);
-                    
-                sign(programParams, from, file, ofile);
-            }
-            else if(command == "to")
-            {
-                string contact, file, ofile;
-                cout << "Contact File: ";
-                getline(cin, contact);
-
-                cout << "To Send: ";
-                getline(cin, file);
-
-                cout << "Out File: ";
-                getline(cin, ofile);
-
-                to(programParams, contact, file, ofile);
-            }
-            // allows you to specify the DH Params for creating contacts.
-            else if(command == "dh")
-            {         
-                cout << "Generator: ";
-                getline(cin, command);
-
-                programParams.dh.gen(Integer(command.c_str()));
-
-                cout << "Modulus: ";
-                getline(cin, command);
-
-                programParams.dh.mod(Integer(command.c_str()));
-            }
-            else if(command == "sdh")
-            {
-                cout << "Out File: ";
-                getline(cin, command);
-                command.append(".dh");
-                encodeFile(programParams.dh, command);
-            }
-            else if(command == "pdh")
-            {
-                pdh(programParams.dh);
-            }
-            else if(command == "dhtest")
-            {
-            dhtest(programParams);
-            }
-            else if(command == "ciphlist")
-            {   
-                ciphlist();
-            }
-            else if(command == "ldh")
-            {
-                cout << "In File: ";
-                getline(cin, command);
-                command.append(".dh");
-                
-                decodeFile(programParams.dh, command);
-            }
-            // gets dh params from a contact
-            else if(command == "cldh")
-            {
-                cout << "Contact File: ";
-                getline(cin, command);
-                command.append(".contact");
-
-                Contact c;
-                decodeFile(c, command);
-
-                programParams.dh = c.dh;
-            }
-            else if(command == "pe")
-            {
-                cout << "In File: ";
-                getline(cin, command);
-
-                previewEncrypted(programParams, command);
-            }
-            // prints out the contact info.
-            else if(command == "pc")
-            {
-                cout << "Contact File: ";
-                getline(cin, command);
-                command.append(".contact");
-                
-                previewContact(command);
-            }
-            // loads dh parameters from an encrypted file.
-            else if(command == "eldh")
-            {
-                cout << "In File: ";
-                getline(cin, command);
-               
-                programParams.dh = extractDHParameters_e(command);
-            }
-            // extracts a contact from an encrypted file
-            else if(command == "exc")
-            {
-                string in, out;
-                cout << "In File: ";
-                getline(cin, in);
-                
-
-                cout << "Out File: ";
-                getline(cin, out);
-                out.append(".contact");
-
-                extractContact(programParams, in, out);
-            }
-            else if(command == "check")
-            {
-                cout << "Contact File: ";
-                getline(cin, command);
-                command.append(".contact");
-                checkContact(programParams, command);
-            }
-            else if(command == "open" || command == "o")
-            {
-                string file, ofile;
-
-                cout << "In File: ";
-                getline(cin, file);
-
-                cout << "Out File: ";
-                getline(cin, ofile);
-                
-                open(programParams, file, ofile);
-            }
-            else
-            {
-                // This is also a cheap hack and will be removed.
-                system(command.c_str());
-            }
-
-            cout << "> ";
-            getline(cin, command);
-        }
+        help();
     }
 
     return 0;
