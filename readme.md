@@ -1,6 +1,6 @@
 # DiscreteCrypt
 
-![Imgur](https://i.imgur.com/9j1u5T6.png)
+![Imgur](https://svgshare.com/i/67o.svg)
 
 This tool is an alternative to software like PGP, with a focus on Discrete Log Cryptography. The algorithm is currently in v2.1, in its first release.
 
