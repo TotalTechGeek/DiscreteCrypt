@@ -353,6 +353,8 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
         if(first) cout << "=== End Symmetric Authentication ===" << endl;
         first = 0;
 
+
+        int moreThanOne = 0;
         for(int i = 0; i < extensions.size(); i++)
         {
             if(extensions[i].et == ExtensionType::ASYMMETRIC)
@@ -370,7 +372,17 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
                 if(programParams.exportSigners.length())
                 {
                     Contact con(aae.contact());
-                    encodeFile(con, to_string(i) + "_" + programParams.exportSigners);
+
+                    if(moreThanOne++)
+                    {
+                        // If there's more than one signer / author, export them separately.
+                        encodeFile(con, to_string(moreThanOne) + "_" + programParams.exportSigners);
+                    }
+                    else
+                    {
+                        encodeFile(con, programParams.exportSigners);
+                    }
+
                 }
             }
         }
@@ -495,6 +507,11 @@ void pdh(const DHParameters & dh)
     cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
 }
 
+
+// Todo: Provide a method of allowing a person to "claim" a new fingerprint, both in an encrypted file and in a separate format.
+// Todo: Create a lightweight C++ API and migrate some of the current code to be more OO friendly. 
+// Todo: Provide new constructs to be able to define concepts like "protocols". This will allow codebases to employ concepts like "trust". 
+
 // The identity field will eventually use JSON.
 int main(int argc, char**args)
 {
@@ -616,7 +633,7 @@ int main(int argc, char**args)
                     extractContact(programParams, in, out);
                 }
                 // Allows someone to export the signers of a message.
-                else if(cur == "-exportSigners")
+                else if(cur == "-exportSigners" || cur == "-exportSigner" || cur == "-exportAuthors" || cur == "-exportAuthor")
                 {
                     programParams.exportSigners = args[++i];
                 }
