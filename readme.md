@@ -1,9 +1,10 @@
 # DiscreteCrypt
----
 
-Documentation for this tool is on the way. It's going to be an alternative to something like PGP, using Discrete Log Cryptography. The algorithm is currently in v1.75 and the user experience is a bit clunky.
+![Imgur](https://svgshare.com/i/67o.svg)
 
-At the moment the focus is on fully developing the functionality rather than user experience. 
+This tool is an alternative to software like PGP, with a focus on Discrete Log Cryptography. The algorithm is currently in v2.1, in its first release.
+
+The tool features powerful authenticated encryption, dozens of strong symmetric ciphers and hash algorithms, future-proof design choices, and a variety of other features (like OTR-Style symmetric authentication, anonymous senders, etc). 
 
 ## To Build
 
@@ -22,26 +23,11 @@ This tool is developed to compile with g++, clang (aliased as g++), and Mingw32_
 
 MSVC support may be added in the future.
 
---- 
 
-## Most Useful Commands
+## User Documentation
 
-#### help
+The documentation for the tool is available [here](http://totaltechgeek.github.io/DiscreteCrypt/DiscreteCrypt%20Documentation.html).
 
-Will give you a list of most of the available commands.
+## Download
 
-#### c 
-
-Will let you create a (c)ontact file so others will be able to send secure files to you.
-
-#### to 
-
-Will let you send a file to different contacts (comma delimited).
-
-#### open
-
-Will let you open an encrypted file.
-
----
-
-You are also able to use commands to switch out the Discrete Log parameters, and the different ciphers and hash functions.
+Check the releases tab [here](https://github.com/TotalTechGeek/DiscreteCrypt/releases). 
