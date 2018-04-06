@@ -648,41 +648,58 @@ AsymmetricAuthenticationSignature debundleFile(const std::string& fileName, cons
     return aas;
 }
 
-
-// Encrypts a file.
-void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Contact>& recipients, const std::vector<DataExtension>& extensions, const FileProperties& fp, std::string& password, Contact* con)
+std::tuple<std::string, AsymmetricAuthenticationSignature> debundleFile(const std::string& fileName)
 {
     using namespace std;
-    using namespace cppcrypto;
+    string res;
+    char lenIn[2];
+    char buf[1];
+    int16_t len;
+
+    ifstream file(fileName, ios::binary);
+    file.read(lenIn, 2);
+
+    len = *(int16_t*)&lenIn;
+
+    char *block = new char[len];
+    file.read(block, len);
+    string in("");
+    in.append(block, len);
+
+    AsymmetricAuthenticationSignature aas;
+    aas.parse(in);
+
+    // Quick hack to write the file out.
+    file.read(buf, 1);
+    while(!file.eof())
+    {
+        res.append(buf, 1);
+        file.read(buf, 1);
+    }
+    file.close();
+
+    
+    delete[] block;
+    return make_tuple(res, aas);
+}
+
+std::string to_hex(const std::string& str)
+{
+    std::string result;
+    static char lookup[] = "0123456789ABCDEF";
+    for(int i = 0; i < str.length(); i++)
+    {
+        result += lookup[(str[i] >> 4) & 15];
+        result += lookup[str[i] & 15];
+    }
+    return result;
+}
+
+
+std::vector<Exchange> createExchanges(const std::vector<Contact>& recipients, FileProperties& fp, std::string& password, Contact* con)
+{   
     using CryptoPP::Integer;
-
-    // Opens the files.
-    ifstream fi(fileName, ios::binary);
-    ofstream fo(outputFile, ios::binary);
-
-    // Gets the block cipher to encrypt the key with.
-    block_cipher *bc;
-    getCipher(fp.cp.cipherType, bc);
-
-    // Grabs the block size and key size for the cipher.
-    // Divisible by 8 because we're actually getting byte size (as opposed to bit size).
-    int blocksize = (int)bc->blocksize() / 8;
-    int keysize = (int)bc->keysize() / 8;
-
-    // Gets the file parameters output data.
-    string output = fp.out();
-    int16_t len = (int16_t)output.length();
-
-
-    // Write the header (FP)
-    fo.write((char*)&len, sizeof(int16_t));
-    fo.write(&output[0], len);
-
-
-    // List of exchanges to be computed from the contacts
-    vector<Exchange> exchanges; 
-        
-    // Bad code, in need of refactoring.   
+    std::vector<Exchange> exchanges;
     if(!con)
     {
         // Creates an anonymous contact for each of the recipients, then computes an exchange for each of them.
@@ -710,6 +727,40 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
             exchanges.push_back(ex);
         }
     }
+
+    fp.recipients = recipients.size();
+    return exchanges;
+}
+
+
+// Encrypts a file.
+void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, const std::vector<DataExtension>& extensions, const FileProperties& fp, const std::string& password)
+{
+    using namespace std;
+    using namespace cppcrypto;
+    using CryptoPP::Integer;
+
+    // Opens the files.
+    ifstream fi(fileName, ios::binary);
+    ofstream fo(outputFile, ios::binary);
+
+    // Gets the block cipher to encrypt the key with.
+    block_cipher *bc;
+    getCipher(fp.cp.cipherType, bc);
+
+    // Grabs the block size and key size for the cipher.
+    // Divisible by 8 because we're actually getting byte size (as opposed to bit size).
+    int blocksize = (int)bc->blocksize() / 8;
+    int keysize = (int)bc->keysize() / 8;
+
+    // Gets the file parameters output data.
+    string output = fp.out();
+    int16_t len = (int16_t)output.length();
+
+
+    // Write the header (FP)
+    fo.write((char*)&len, sizeof(int16_t));
+    fo.write(&output[0], len);
 
     // Writes each of the exchanges.
     for(int i = 0; i < exchanges.size(); i++)

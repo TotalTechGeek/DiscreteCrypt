@@ -2,17 +2,20 @@
 #include "Parameters.h"
 class AsymmetricAuthenticationExtension
 {
+    private:
+    std::tuple<std::string, std::string> hashAndHmacFile(const std::string& file, const std::string& password, HashType ht);
+    std::tuple<std::string, std::string> hashAndHmacData(const std::string& file, const std::string& password, HashType ht);
+    
     CryptoPP::Integer r, s;
     Contact _contact;
-    private:
-    std::string data;
-    std::tuple<std::string, std::string> hashAndHmacFile(const std::string& file, const std::string& password, HashType ht);
 
     public:
     AsymmetricAuthenticationExtension();
     AsymmetricAuthenticationExtension(const DataExtension& d);
-    AsymmetricAuthenticationExtension(const Contact& c, const std::string& file, const std::string& password, HashType ht);
-    bool verify(std::string file, HashType ht);
+    AsymmetricAuthenticationExtension(const Contact& c, const std::string& file, const std::string& password, HashType ht, bool data = false);
+    bool verify(std::string file, HashType ht, bool data = false);
+
+    
 
     Contact contact() const;
 
@@ -31,9 +34,9 @@ class AsymmetricAuthenticationSignature
     HashType ht;
     public:
     AsymmetricAuthenticationSignature();
-    AsymmetricAuthenticationSignature(const Contact& c, const std::string& file, const std::string& password, HashType ht);
+    AsymmetricAuthenticationSignature(const Contact& c, const std::string& file, const std::string& password, HashType ht, bool data = false);
     
-    bool verify(std::string file);
+    bool verify(std::string file, bool data = false);
 
     Contact contact() const;
 

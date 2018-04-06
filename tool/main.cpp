@@ -126,6 +126,12 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
     vector<Contact> recipients;
     vector<DataExtension> extensions;
     vector<string> recipients_s;
+    
+    Contact fromCon;
+    Contact* con = 0;
+    
+    FileProperties fp(programParams.cp, programParams.h);
+
     StringSplitFunctions::splitString(recipients_s, contact, ",");
     for(int i = 0; i < recipients_s.size(); i++)
     {
@@ -135,26 +141,16 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
         recipients.push_back(recipient);
     }
         
-    Contact fromCon;
-    Contact* con = 0;
-        
     // bad debug command to test sending "from"
     if(programParams.from.length())
     {
         cout << "Password for " << programParams.from << ": ";
         password = getPassword();
         decodeFile(fromCon, programParams.from);
-        if(fromCon.verify(password))
-        {
-            AsymmetricAuthenticationExtension aae(fromCon, file, password, programParams.h);
-            con = &fromCon;
-            extensions.push_back(aae.outData());
-        }
-        else
-        {
-            password = "";
-        }                
+        con = &fromCon;               
     }
+
+    vector<Exchange> exchanges = createExchanges(recipients, fp, password, con);
 
     for(int i = 0; i < programParams.symmetricAuthentications.size(); i++)
     {
@@ -171,12 +167,29 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
         de.data = programParams.messages[i];
         extensions.push_back(de);
     }
+
+    if(con)
+    {
+        // Silly test, needs to be split into different code.
+        for(int i = 0; i < exchanges.size(); i++)
+        {
+            auto uid = exchanges[i].bobContact().uid(programParams.h);
+            if(uid != con->uid(programParams.h))
+            {
+                AsymmetricAuthenticationExtension aae(*con, "AUTH" + uid, password, programParams.h, true);
+                DataExtension de = aae.outData();
+                de.et = ExtensionType::AUTHORIZATION;
+                de.data = uid + de.data;
+                extensions.push_back(de);
+            }
+        }
+
+        AsymmetricAuthenticationExtension aae(fromCon, file, password, programParams.h);
+        extensions.push_back(aae.outData());
+    }
     
-    FileProperties fp(programParams.cp, programParams.h);
     hmacFile(file, extensions, fp);
-        
-    fp.recipients = recipients.size();
-    encryptFile(file, ofile, recipients, extensions, fp, password, con);
+    encryptFile(file, ofile, exchanges, extensions, fp, password);
 }
 
 void ciphlist()
@@ -390,6 +403,31 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
         if(first) cout << "=== End Asymmetric Authentication ===" << endl;
         first = 0;
 
+
+
+        for(int i = 0; i < extensions.size(); i++)
+        {
+        
+            if(extensions[i].et == ExtensionType::AUTHORIZATION)
+            {
+                if(!(first++)) cout << "=== Authorizations ===" << endl;
+
+                int outSize = getHashOutputSize(fp.ht) / 8;
+                
+                string toAuthorize = extensions[i].data.substr(0, outSize);
+                extensions[i].data = extensions[i].data.substr(outSize);
+
+                AsymmetricAuthenticationExtension aae(extensions[i]);
+                cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
+                cout << "Authorizing: 0x" << to_hex(toAuthorize) << endl;
+                
+                cout << (aae.verify("AUTH" + toAuthorize, fp.ht, true) ? "Success" : "Fail") << endl;
+            }
+        }
+        
+        if(first) cout << "=== End Authorizations ===" << endl;
+        first = 0;
+
     }
     
 }
@@ -507,7 +545,6 @@ void pdh(const DHParameters & dh)
     cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
 }
 
-
 // Todo: Provide a method of allowing a person to "claim" a new fingerprint, both in an encrypted file and in a separate format.
 // Todo: Create a lightweight C++ API and migrate some of the current code to be more OO friendly. 
 // Todo: Provide new constructs to be able to define concepts like "protocols". This will allow codebases to employ concepts like "trust". 
@@ -555,7 +592,7 @@ int main(int argc, char**args)
                 {
                     programParams.force = true;
                 }
-                else if(cur == "bundle" || cur == "b")
+                else if(cur == "bundle" || cur == "b" || cur == "claim")
                 {
                     string contact = args[++i];
                     string file = args[++i];

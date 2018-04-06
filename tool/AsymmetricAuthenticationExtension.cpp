@@ -13,31 +13,34 @@ AsymmetricAuthenticationExtension::AsymmetricAuthenticationExtension(const DataE
     parse(d);
 }
 
-AsymmetricAuthenticationExtension::AsymmetricAuthenticationExtension(const Contact& c, const std::string& file, const std::string& password, HashType ht) : r("0"), s("0"), _contact(c)
+AsymmetricAuthenticationExtension::AsymmetricAuthenticationExtension(const Contact& c, const std::string& file, const std::string& password, HashType ht, bool data) : r("0"), s("0"), _contact(c)
 {
     using namespace std;
-    if(c.verify(password))
+    Integer pohlig, factors;
+    tie(pohlig, factors) = _contact.dh.pohlig();    
+    
+    // This converts the public key to its proper DSA public key.
+    Integer g = a_exp_b_mod_c(_contact.dh.gen(), factors, _contact.dh.mod());
+    
+    string hash, hmac;
+    if(data)
     {
-        Integer pohlig, factors;
-        tie(pohlig, factors) = _contact.dh.pohlig();    
-        
-        // This converts the public key to its proper DSA public key.
-        Integer g = a_exp_b_mod_c(_contact.dh.gen(), factors, _contact.dh.mod());
-        
-        string hash, hmac;
-        tie(hash, hmac) = hashAndHmacFile(file, password, ht);
-
-        Integer x = passwordToPrivate(password, _contact.person.salt, _contact.sp);
-
-        Integer k = stringToCryptoInt(hmac), H = stringToCryptoInt(hash);
-        
-        r = a_exp_b_mod_c(g, k, _contact.dh.mod()) % pohlig;
-        s = (k.InverseMod(pohlig) * (H + x*r)) % pohlig;
+        tie(hash, hmac) = hashAndHmacData(file, password, ht);
     }
-
+    else
+    {
+        tie(hash, hmac) = hashAndHmacFile(file, password, ht);
+    }
+    
+    Integer x = passwordToPrivate(password, _contact.person.salt, _contact.sp);
+    Integer k = stringToCryptoInt(hmac), H = stringToCryptoInt(hash);
+    
+    r = a_exp_b_mod_c(g, k, _contact.dh.mod()) % pohlig;
+    s = (k.InverseMod(pohlig) * (H + x*r)) % pohlig;
 }
 
-bool AsymmetricAuthenticationExtension::verify(std::string file, HashType ht)
+
+bool AsymmetricAuthenticationExtension::verify(std::string file, HashType ht, bool data)
 {
     using namespace std;
     if(r != 0 && s != 0)
@@ -50,7 +53,15 @@ bool AsymmetricAuthenticationExtension::verify(std::string file, HashType ht)
         Integer g = a_exp_b_mod_c(_contact.dh.gen(), factors, _contact.dh.mod());
 
         string hash, hmac;
-        tie(hash, hmac) = hashAndHmacFile(file, "", ht);
+
+        if(data)
+        {
+            tie(hash, hmac) = hashAndHmacData(file, "", ht);
+        }
+        else
+        {
+            tie(hash, hmac) = hashAndHmacFile(file, "", ht);
+        }
 
         Integer H = stringToCryptoInt(hash);
         Integer w = s.InverseMod(pohlig);   
@@ -64,6 +75,38 @@ bool AsymmetricAuthenticationExtension::verify(std::string file, HashType ht)
         return v == r;
     }
     return 0;
+}
+
+std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndHmacData(const std::string& data, const std::string& pass, HashType ht)
+{
+    using namespace cppcrypto;
+    using namespace std;
+    unsigned char *hash, *hash2;
+    crypto_hash *bc, *hc;
+    getHash(ht, bc);
+    getHash(ht, hc);
+
+    hmac mac(*bc, pass);
+    
+    mac.init();
+    hc->init(); 
+
+    hash = new unsigned char[bc->hashsize() / 8](), hash2 = new unsigned char[hc->hashsize() / 8]();
+    
+
+    mac.hash_string(data, hash);
+    hc->hash_string(data, hash2);
+
+
+    string res(""), res2("");
+    res.append((char*)hash, bc->hashsize() / 8);
+    res2.append((char*)hash2, hc->hashsize() / 8);
+    
+    delete[] hash;
+    delete[] hash2;
+    delete bc; 
+    delete hc; 
+    return make_tuple(res2, res);
 }
 
 std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndHmacFile(const std::string& file, const std::string& pass, HashType ht)
@@ -121,7 +164,7 @@ std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndH
     delete[] hash2;
     delete bc; 
     delete hc; 
-    return std::make_tuple(res2, res);
+    return make_tuple(res2, res);
 }
 
 #define append_int(x) \
@@ -197,7 +240,7 @@ AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature() : aae(), 
 {
 }
 
-AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature(const Contact& c, const std::string& file, const std::string& password, HashType ht) : aae(c, file, password, ht), ht(ht)
+AsymmetricAuthenticationSignature::AsymmetricAuthenticationSignature(const Contact& c, const std::string& file, const std::string& password, HashType ht, bool data) : aae(c, file, password, ht, data), ht(ht)
 {
 
 }
@@ -212,9 +255,9 @@ Contact AsymmetricAuthenticationSignature::contact() const
     return aae.contact();
 }
     
-bool AsymmetricAuthenticationSignature::verify(std::string file)
+bool AsymmetricAuthenticationSignature::verify(std::string file, bool data)
 {
-    return aae.verify(file, ht);
+    return aae.verify(file, ht, data);
 }
 
 std::string AsymmetricAuthenticationSignature::out() const

@@ -155,14 +155,7 @@ int PersonParameters::len() const
 
 std::string PersonParameters::saltHex() const
 {
-    std::string result;
-    static char lookup[] = "0123456789ABCDEF";
-    for(int i = 0; i < salt.length(); i++)
-    {
-        result += lookup[(salt[i] >> 4) & 15];
-        result += lookup[salt[i] & 15];
-    }
-    return result;
+    return to_hex(salt);
 }
 
 std::string PersonParameters::out() const
@@ -244,15 +237,7 @@ std::string Contact::uid(HashType ht) const
 
 std::string Contact::uidHex(HashType ht) const
 {
-    std::string result;
-    std::string _uid = uid();
-    static char lookup[] = "0123456789ABCDEF";
-    for(int i = 0; i < _uid.length(); i++)
-    {
-        result += lookup[(_uid[i] >> 4) & 15];
-        result += lookup[_uid[i] & 15];
-    }
-    return result;
+    return to_hex(uid(ht));
 }
 
 

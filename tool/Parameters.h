@@ -139,7 +139,8 @@ enum ExtensionType : uint8_t
     CUSTOM,
     SYMMETRIC,
     ASYMMETRIC, 
-    MESSAGE
+    MESSAGE,
+    AUTHORIZATION
 };
 
 enum CipherType : int16_t
