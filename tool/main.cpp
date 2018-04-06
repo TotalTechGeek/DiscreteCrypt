@@ -170,22 +170,24 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
 
     if(con)
     {
+        AsymmetricAuthenticationExtension aae(fromCon, file, password, programParams.h);
+        extensions.push_back(aae.outData());
+
         // Silly test, needs to be split into different code.
         for(int i = 0; i < exchanges.size(); i++)
         {
             auto uid = exchanges[i].bobContact().uid(programParams.h);
             if(uid != con->uid(programParams.h))
             {
-                AsymmetricAuthenticationExtension aae(*con, "AUTH" + uid, password, programParams.h, true);
-                DataExtension de = aae.outData();
-                de.et = ExtensionType::AUTHORIZATION;
-                de.data = uid + de.data;
-                extensions.push_back(de);
+                AsymmetricAuthenticationExtension authorization(*con, aae.out() + "AUTH" + uid, password, programParams.h, true);
+                DataExtension authDE = authorization.outData();
+                authDE.et = ExtensionType::AUTHORIZATION;
+                authDE.data = uid + authDE.data;
+                extensions.push_back(authDE);
             }
         }
+        
 
-        AsymmetricAuthenticationExtension aae(fromCon, file, password, programParams.h);
-        extensions.push_back(aae.outData());
     }
     
     hmacFile(file, extensions, fp);
@@ -279,6 +281,127 @@ void help()
 }
 
 
+
+void authorizations(const FileProperties& fp, const vector<DataExtension>& extensions, const vector<Exchange>& exchanges)
+{
+    int first = 0;
+    AsymmetricAuthenticationExtension signer;
+
+    for(int i = 0; i < extensions.size(); i++)
+    {
+        if(extensions[i].et == ExtensionType::ASYMMETRIC)
+        {
+            signer.parse(extensions[i]);
+        }
+        if(extensions[i].et == ExtensionType::AUTHORIZATION)
+        {
+            if(!(first++)) cout << "=== Authorizations ===" << endl;
+            int outSize = getHashOutputSize(fp.ht) / 8;
+            string toAuthorize = extensions[i].data.substr(0, outSize);
+            
+            DataExtension de;
+            
+            de.data = extensions[i].data.substr(outSize);
+            AsymmetricAuthenticationExtension aae(de);
+            cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
+            
+            // Because the uid is typically shown as its SHA256 representation.
+            for(int j = 0; j < exchanges.size(); j++)
+            {
+                if(exchanges[j].aliceContact().uid(fp.ht) == toAuthorize)
+                {
+                    cout << "Authorizing: 0x" << exchanges[j].aliceContact().uidHex() << endl;
+                    break;
+                }
+                else if(exchanges[j].bobContact().uid(fp.ht) == toAuthorize)
+                {
+                    cout << "Authorizing: 0x" << exchanges[j].bobContact().uidHex() << endl;
+                    break;
+                }
+            }
+            
+            cout << (aae.verify(signer.out() + "AUTH" + toAuthorize, fp.ht, true) ? "Success" : "Fail") << endl;
+        }
+    }
+
+    if(first) cout << "=== End Authorizations ===" << endl;
+}
+
+void symmetricCheck(ProgramParams& programParams, const FileProperties& fp, const vector<DataExtension>& extensions, const std::string& ofile)
+{
+    int first = 0;
+    for(int i = 0; i < extensions.size(); i++)
+    {
+        if(extensions[i].et == ExtensionType::SYMMETRIC)
+        {
+            if(!(first++))
+            {
+                cout << "=== Symmetric Authentication ===" << endl;
+            }
+            SymmetricAuthenticationExtension sae(extensions[i]);
+            cout << sae.prompt() << endl;
+            string command = getPassword();
+            cout << (sae.check(command, ofile, fp.ht) ? "Success" : "Fail") << endl;                 
+        }
+    }
+
+    if(first) cout << "=== End Symmetric Authentication ===" << endl;
+}
+
+void messagesShow(const vector<DataExtension>& extensions)
+{
+    int first = 0;
+
+    for(int i = 0; i < extensions.size(); i++)
+    {
+        if(extensions[i].et == ExtensionType::MESSAGE)
+        {
+            if(!(first++))
+            {
+                cout << "=== Messages ===" << endl;
+            }
+            cout << extensions[i].data << endl;
+        }
+    }
+    if(first) cout << "=== End Messages ===" << endl;
+}
+
+
+void asymmetricCheck(ProgramParams& programParams, const FileProperties& fp, const vector<DataExtension>& extensions, const std::string& ofile)
+{
+    int moreThanOne = 0, first = 0;
+    for(int i = 0; i < extensions.size(); i++)
+    {
+        if(extensions[i].et == ExtensionType::ASYMMETRIC)
+        {
+            if(!(first++))
+            {
+                cout << "=== Asymmetric Authentication ===" << endl;
+            }
+            AsymmetricAuthenticationExtension aae(extensions[i]);
+            cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
+            cout << (aae.verify(ofile, fp.ht) ? "Success" : "Fail") << endl;
+            // Allows someone to export the signers of a message.
+            if(programParams.exportSigners.length())
+            {
+                Contact con(aae.contact());
+                if(moreThanOne++)
+                {
+                    // If there's more than one signer / author, export them separately.
+                    encodeFile(con, to_string(moreThanOne) + "_" + programParams.exportSigners);
+                }
+                else
+                {
+                    encodeFile(con, programParams.exportSigners);
+                }
+            }
+        }
+    }
+
+    if(first) cout << "=== End Asymmetric Authentication ===" << endl;
+}
+
+
 void open(ProgramParams& programParams, const string& file, const string& ofile)
 {
     string password, command;
@@ -327,107 +450,13 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
     password = getPassword();
     bool success = decryptFile(file, ofile, exchanges, extensions, fp, password, person);
     cout << (success ? "Success" : "Fail") << endl;
+    
     if(success)
     {
-        int first = 0;
-        
-        for(int i = 0; i < extensions.size(); i++)
-        {
-            if(extensions[i].et == ExtensionType::MESSAGE)
-            {
-                if(!(first++))
-                {
-                    cout << "=== Messages ===" << endl;
-                }
-
-                cout << extensions[i].data << endl;
-            }
-        }
-
-        if(first) cout << "=== End Messages ===" << endl;
-        first = 0;
-
-        for(int i = 0; i < extensions.size(); i++)
-        {
-            if(extensions[i].et == ExtensionType::SYMMETRIC)
-            {
-                if(!(first++))
-                {
-                    cout << "=== Symmetric Authentication ===" << endl;
-                }
-
-                SymmetricAuthenticationExtension sae(extensions[i]);
-                cout << sae.prompt() << endl;
-                command = getPassword();
-                cout << (sae.check(command, ofile, fp.ht) ? "Success" : "Fail") << endl;                 
-            }
-        }
-
-        if(first) cout << "=== End Symmetric Authentication ===" << endl;
-        first = 0;
-
-
-        int moreThanOne = 0;
-        for(int i = 0; i < extensions.size(); i++)
-        {
-            if(extensions[i].et == ExtensionType::ASYMMETRIC)
-            {
-                if(!(first++))
-                {
-                    cout << "=== Asymmetric Authentication ===" << endl;
-                }
-
-                AsymmetricAuthenticationExtension aae(extensions[i]);
-                cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
-                cout << (aae.verify(ofile, fp.ht) ? "Success" : "Fail") << endl;
-
-                // Allows someone to export the signers of a message.
-                if(programParams.exportSigners.length())
-                {
-                    Contact con(aae.contact());
-
-                    if(moreThanOne++)
-                    {
-                        // If there's more than one signer / author, export them separately.
-                        encodeFile(con, to_string(moreThanOne) + "_" + programParams.exportSigners);
-                    }
-                    else
-                    {
-                        encodeFile(con, programParams.exportSigners);
-                    }
-
-                }
-            }
-        }
-
-        if(first) cout << "=== End Asymmetric Authentication ===" << endl;
-        first = 0;
-
-
-
-        for(int i = 0; i < extensions.size(); i++)
-        {
-        
-            if(extensions[i].et == ExtensionType::AUTHORIZATION)
-            {
-                if(!(first++)) cout << "=== Authorizations ===" << endl;
-
-                int outSize = getHashOutputSize(fp.ht) / 8;
-                
-                string toAuthorize = extensions[i].data.substr(0, outSize);
-                extensions[i].data = extensions[i].data.substr(outSize);
-
-                AsymmetricAuthenticationExtension aae(extensions[i]);
-                cout << (aae.contact().person.identity) << " (0x" << aae.contact().uidHex() << ")" << endl;
-                cout << "Authorizing: 0x" << to_hex(toAuthorize) << endl;
-                
-                cout << (aae.verify("AUTH" + toAuthorize, fp.ht, true) ? "Success" : "Fail") << endl;
-            }
-        }
-        
-        if(first) cout << "=== End Authorizations ===" << endl;
-        first = 0;
-
+        messagesShow(extensions);
+        symmetricCheck(programParams, fp, extensions, ofile);
+        asymmetricCheck(programParams, fp, extensions, ofile);
+        authorizations(fp, extensions, exchanges);
     }
     
 }
