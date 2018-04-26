@@ -33,6 +33,7 @@ struct ProgramParams
     string exportSigners;
 
     bool force = false;
+    bool deniable = false;
 
     vector<string> messages;
     vector<tuple<string, string>> symmetricAuthentications;
@@ -168,28 +169,32 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
         extensions.push_back(de);
     }
 
-    if(con)
+    // The deniable flag allows someone to skip the steps that prevent forgeability between
+    // the communicating parties.
+    if(!programParams.deniable)
     {
-        AsymmetricAuthenticationExtension aae(fromCon, file, password, programParams.h);
-        extensions.push_back(aae.outData());
-
-        // Silly test, needs to be split into different code.
-        for(int i = 0; i < exchanges.size(); i++)
+        if(con)
         {
-            auto uid = exchanges[i].bobContact().uid(programParams.h);
-            if(uid != con->uid(programParams.h))
+            AsymmetricAuthenticationExtension aae(fromCon, file, password, programParams.h);
+            extensions.push_back(aae.outData());
+
+            // Silly test, needs to be split into different code.
+            // This creates authorizations for new signatures.
+            for(int i = 0; i < exchanges.size(); i++)
             {
-                AsymmetricAuthenticationExtension authorization(*con, aae.out() + "AUTH" + uid, password, programParams.h, true);
-                DataExtension authDE = authorization.outData();
-                authDE.et = ExtensionType::AUTHORIZATION;
-                authDE.data = uid + authDE.data;
-                extensions.push_back(authDE);
+                auto uid = exchanges[i].bobContact().uid(programParams.h);
+                if(uid != con->uid(programParams.h))
+                {
+                    AsymmetricAuthenticationExtension authorization(*con, aae.out() + "AUTH" + uid, password, programParams.h, true);
+                    DataExtension authDE = authorization.outData();
+                    authDE.et = ExtensionType::AUTHORIZATION;
+                    authDE.data = uid + authDE.data;
+                    extensions.push_back(authDE);
+                }
             }
         }
-        
-
     }
-    
+
     hmacFile(file, extensions, fp);
     encryptFile(file, ofile, exchanges, extensions, fp, password);
 }
@@ -273,6 +278,7 @@ void help()
     cout << "------" << endl;
     cout << "--prompt[-hidden] <question>" << "\t" << "Allows you to add an OTR-Style prompt for symmetric authentication." << endl;
     cout << "--add-message[-hidden]" << "\t" << "Allows you to add a message to output during the decryption process" << endl;
+    cout << "--deniable" << "\t\t" << "Excludes signatures from the encrypted payload. Allows forgeability between the parties." << endl;
     cout << "--exportSigners <out>" << "\t" << "If an encrypted file is asymmetrically signed, this parameter will export its signers." << endl;
     cout << "--drop" << "\t" << "Drops all messages and OTR prompts." << endl;
     cout << "-exdhc <contact file> <out>" << "\t" << "Extracts DH Parameters from a contact file." << endl;
@@ -651,6 +657,10 @@ int main(int argc, char**args)
                     cout << (aas.verify(ofile) ? "Signature Verified" : "Signature Verification Failed") << endl;
            
                 }
+                else if(cur == "-deniable")
+                {
+                    programParams.deniable = true;
+                }
                 else if(cur == "-prompt")
                 {
                     string question = args[++i];
@@ -683,10 +693,11 @@ int main(int argc, char**args)
                     command = getPassword();
                     programParams.messages.push_back(command);
                 }
-                else if (cur == "-drop")
+                else if (cur == "-drop" || cur == "-reset")
                 {
                     programParams.symmetricAuthentications.clear();
                     programParams.messages.clear();
+                    programParams.deniable = false;
                 }
                 else if(cur == "contact" || cur == "c")
                 {
