@@ -1,6 +1,6 @@
 
 // cryptopp
-Resource("https://www.cryptopp.com/cryptopp600.zip", "cryptopp.zip", function(f)
+Resource("https://www.cryptopp.com/cryptopp700.zip", "cryptopp.zip", function(f)
 {
     extract2(f, "cryptopp")
 })

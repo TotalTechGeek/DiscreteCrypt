@@ -2,6 +2,8 @@
 
 #include "Parameters.h"
 #include "../cryptopp/osrng.h"
+#include "../cryptopp/cryptlib.h"
+
 #include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include "AsymmetricAuthenticationExtension.h"
 #include <string>
@@ -37,7 +39,10 @@ CryptoPP::Integer createContact(Contact& con, const DHParameters& dh, const Scry
 std::string getCipherName(CipherType p);
 
 // This is somewhat of a factory design pattern.
-void getCipher(CipherType p, cppcrypto::block_cipher*& bc);
+
+void getEncryptor(CipherType p, CryptoPP::SymmetricCipher*& bc);
+void getDecryptor(CipherType p, CryptoPP::SymmetricCipher*& bc);
+
 void getHash(HashType h, cppcrypto::crypto_hash*& bc);
 
 

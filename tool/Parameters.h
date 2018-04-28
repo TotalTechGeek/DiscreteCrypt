@@ -42,50 +42,55 @@ class DHParameters
 // Tier 1 are less common algorithms. [Threefish, Serpent, Twofish, Camellia]
 // Tier 2-3 are algorithms that have country ties. [Kuzynechik, Aria, Kalyna, Simon/Speck]
 
+
+// Name, ID, Cipher, Block Size, Key Size
 #define CIPHER_ENUM(DO) \
-    DO(AES128,          0000,   aes128) \
-    DO(AES192,          0001,   aes192) \
-    DO(AES256,          0002,   aes256) \
-    DO(Threefish256,    0100,   threefish256_256) \
-    DO(Threefish512,    0101,   threefish512_512) \
-    DO(Threefish1024,   0102,   threefish1024_1024) \
-    DO(Camellia128,     0110,   camellia128) \
-    DO(Camellia192,     0111,   camellia192) \
-    DO(Camellia256,     0112,   camellia256) \
-    DO(Serpent128,      0120,   serpent128) \
-    DO(Serpent192,      0121,   serpent192) \
-    DO(Serpent256,      0122,   serpent256) \
-    DO(Twofish128,      0130,   twofish128) \
-    DO(Twofish192,      0131,   twofish192) \
-    DO(Twofish256,      0132,   twofish256) \
-    DO(Mars128,         0140,   mars128) \
-    DO(Mars160,         0141,   mars160) \
-    DO(Mars192,         0142,   mars192) \
-    DO(Mars224,         0143,   mars224) \
-    DO(Mars256,         0144,   mars256) \
-    DO(Mars384,         0145,   mars384) \
-    DO(Mars448,         0146,   mars448) \
-    DO(Cast6_128,       0150,   cast6_128) \
-    DO(Cast6_160,       0151,   cast6_160) \
-    DO(Cast6_192,       0152,   cast6_192) \
-    DO(Cast6_224,       0153,   cast6_224) \
-    DO(Cast6_256,       0154,   cast6_256) \
+    DO(AES128,          0000,   AES,            128,    128) \
+    DO(AES192,          0001,   AES,            128,    192) \
+    DO(AES256,          0002,   AES,            128,    256) \
+    DO(Threefish256,    0100,   Threefish256,   256,    256) \
+    DO(Threefish512,    0101,   Threefish512,   512,    512) \
+    DO(Threefish1024,   0102,   Threefish1024,  1024,   1024) \
+    DO(Camellia128,     0110,   Camellia,       128,    128) \
+    DO(Camellia192,     0111,   Camellia,       128,    192) \
+    DO(Camellia256,     0112,   Camellia,       128,    256) \
+    DO(Serpent128,      0120,   Serpent,        128,    128) \
+    DO(Serpent192,      0121,   Serpent,        128,    192) \
+    DO(Serpent256,      0122,   Serpent,        128,    256) \
+    DO(Twofish128,      0130,   Twofish,        128,    128) \
+    DO(Twofish192,      0131,   Twofish,        128,    192) \
+    DO(Twofish256,      0132,   Twofish,        128,    256) \
+    DO(Mars128,         0140,   MARS,           128,    128) \
+    DO(Mars160,         0141,   MARS,           128,    160) \
+    DO(Mars192,         0142,   MARS,           128,    192) \
+    DO(Mars224,         0143,   MARS,           128,    224) \
+    DO(Mars256,         0144,   MARS,           128,    256) \
+    DO(Mars384,         0145,   MARS,           128,    384) \
+    DO(Mars448,         0146,   MARS,           128,    448) \
+    DO(Cast6_128,       0150,   CAST256,        128,    128) \
+    DO(Cast6_160,       0151,   CAST256,        128,    160) \
+    DO(Cast6_192,       0152,   CAST256,        128,    192) \
+    DO(Cast6_224,       0153,   CAST256,        128,    224) \
+    DO(Cast6_256,       0154,   CAST256,        128,    256) \
+    DO(Aria128,         0210,   ARIA,           128,    128) \
+    DO(Aria192,         0211,   ARIA,           128,    192) \
+    DO(Aria256,         0212,   ARIA,           128,    256) \
+    DO(Speck128_128,    0220,   SPECK128,       128,    128) \
+    DO(Speck128_192,    0221,   SPECK128,       128,    192) \
+    DO(Speck128_256,    0222,   SPECK128,       128,    256) \
+    DO(Simon128_128,    0230,   SIMON128,       128,    128) \
+    DO(Simon128_192,    0231,   SIMON128,       128,    192) \
+    DO(Simon128_256,    0232,   SIMON128,       128,    256) \
+    DO(Kalyna128_128,   0240,   Kalyna128,      128,    128) \
+    DO(Kalyna128_256,   0241,   Kalyna128,      128,    256) \
+    DO(Kalyna256_256,   0242,   Kalyna256,      256,    256) \
+    DO(Kalyna256_512,   0243,   Kalyna256,      256,    512) \
+    DO(Kalyna512_512,   0244,   Kalyna512,      512,    512) \
+    DO(SM4,             0250,   SM4,            128,    128) \
+
+    /*
     DO(Kuznyechik,      0200,   kuznyechik) \
-    DO(Aria128,         0210,   aria128) \
-    DO(Aria192,         0211,   aria192) \
-    DO(Aria256,         0212,   aria256) \
-    DO(Speck128_128,    0220,   speck128_128) \
-    DO(Speck128_192,    0221,   speck128_192) \
-    DO(Speck128_256,    0222,   speck128_256) \
-    DO(Simon128_128,    0230,   simon128_128) \
-    DO(Simon128_192,    0231,   simon128_192) \
-    DO(Simon128_256,    0232,   simon128_256) \
-    DO(Kalyna128_128,   0240,   kalyna128_128) \
-    DO(Kalyna128_256,   0241,   kalyna128_256) \
-    DO(Kalyna256_256,   0242,   kalyna256_256) \
-    DO(Kalyna256_512,   0243,   kalyna256_512) \
-    DO(Kalyna512_512,   0244,   kalyna512_512) \
-    DO(SM4,             0250,   sm4)
+    */
 
 #define DO2(X, Y, Z, DO) \
     DO(X ## _224, Y ## 0, Z(224)) \
@@ -118,12 +123,22 @@ class DHParameters
 #define MAKE_STRING(VAR, VAL, CONS) case VAR: return #VAR;
 #define MAKE_CONS(VAR, VAL, CONS) case VAR: bc = new CONS; break;
 
+#define MAKE_ENUM2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) VAR = VAL,
+#define MAKE_STRING_ARRAY2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) #VAR,
+#define MAKE_INT_ARRAY2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) VAL,
+#define MAKE_STRING2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case VAR: return #VAR;
+#define MAKE_BLOCKSIZE(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: return BLOCKSIZE;
+#define MAKE_KEYSIZE(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: return KEYSIZE;
+#define MAKE_ENC(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: bc = new CTR_Mode<CryptoPP::CONS>::Encryption; break; 
+#define MAKE_DEC(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: bc = new CTR_Mode<CryptoPP::CONS>::Decryption; break;
+
+
 const int16_t AVAILABLE_CIPHERS_CODES[] = {
-    CIPHER_ENUM(MAKE_INT_ARRAY)
+    CIPHER_ENUM(MAKE_INT_ARRAY2)
 };
 
 const char* const AVAILABLE_CIPHERS[] = {
-    CIPHER_ENUM(MAKE_STRING_ARRAY)
+    CIPHER_ENUM(MAKE_STRING_ARRAY2)
 };
 
 const int16_t AVAILABLE_HASHES_CODES[] = {
@@ -145,7 +160,7 @@ enum ExtensionType : uint8_t
 
 enum CipherType : int16_t
 {
-    CIPHER_ENUM(MAKE_ENUM)               
+    CIPHER_ENUM(MAKE_ENUM2)               
 };
 
 enum HashType: int16_t

@@ -23,5 +23,5 @@ build/SymmetricAuthenticationExtension.o: tool/SymmetricAuthenticationExtension.
 build/AsymmetricAuthenticationExtension.o: tool/AsymmetricAuthenticationExtension.cpp tool/AsymmetricAuthenticationExtension.h 
 	$(CC) -c tool/AsymmetricAuthenticationExtension.cpp -o build/AsymmetricAuthenticationExtension.o $(END)
 
-build/toolCrypto.o: tool/toolCrypto.cpp tool/toolCrypto.h 
+build/toolCrypto.o: tool/toolCrypto.cpp tool/toolCrypto.h tool/Parameters.h
 	$(CC) -c tool/toolCrypto.cpp -o build/toolCrypto.o $(END)
