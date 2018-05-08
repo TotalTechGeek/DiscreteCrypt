@@ -99,24 +99,6 @@ class DHParameters
 #define DO3(X, Y, Z, BLOCKSIZE, DO) \
     DO2(X, Y, Z, BLOCKSIZE, DO) \
     DO(X ## _1024, Y ## 4, Z, 1024, BLOCKSIZE) \
-       
-/*
-#define HASH_ENUM(DO) \
-    DO(SHA256,              0000,       sha256) \
-    DO(SHA384,              0001,       sha384) \
-    DO(SHA512,              0002,       sha512) \
-    DO2(SHA3,               001,       sha3, DO) \
-    DO3(SHAKE128,           002,       shake128, DO) \
-    DO3(SHAKE256,           003,       shake256, DO) \
-    DO3(Skein256,           010,       skein256, DO) \
-    DO3(Skein512,           011,       skein512, DO) \
-    DO3(Skein1024,          012,       skein1024, DO) \
-    DO(Whirlpool,           0130,       whirlpool) \
-    DO(Streebog256,         0200,       streebog(256)) \
-    DO(Streebog512,         0201,       streebog(512)) \
-    DO(Kupyna256,           0210,       kupyna(256)) \
-    DO(Kupyna512,           0211,       kupyna(512)) \
- */
 
 #define HASH_ENUM(DO) \
     DO(SHA256,          0000,   CryptoppHash<CryptoPP::SHA256>,     256,    512) \

@@ -29,4 +29,3 @@ class KuznyechikEncryptor : public Encryptor
     } 
 
 };
-
