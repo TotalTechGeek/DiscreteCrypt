@@ -5,17 +5,37 @@ Resource("https://www.cryptopp.com/cryptopp700.zip", "cryptopp.zip", function(f)
     extract2(f, "cryptopp")
 })
 
-// For cryptopp
-if(isWindows())
+
+function build(x)
 {
-    var make = "make"
-    if(detect("mingw32-make")) make = "mingw32-make"
-    sys("cd cryptopp & " + make)
+    // For cryptopp
+    if(isWindows())
+    {
+        var make = "make"
+        if(detect("mingw32-make")) make = "mingw32-make"
+        sys("cd " + x + " & " + make)
+    }
+    else
+    {
+        sys("cd " + x + "; make")
+    }
+
+
 }
-else
+
+build('cryptopp')
+
+
+
+sys("git clone https://github.com/TotalTechGeek/kuznechik", function()
 {
-    sys("cd cryptopp; make")
-}
+    build('kuznechik')    
+})
+
+sys("git clone https://github.com/kerukuro/digestpp", function()
+{
+    
+})
 
 function make_program()
 {

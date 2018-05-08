@@ -9,7 +9,7 @@ endif
 all: build/cryptotool.exe
 
 build/cryptotool.exe: build/Parameters.o build/main.o build/SymmetricAuthenticationExtension.o build/AsymmetricAuthenticationExtension.o build/toolCrypto.o 
-	$(CC) build/main.o build/Parameters.o build/AsymmetricAuthenticationExtension.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o -o build/cryptotool.exe $(END) kuznechik-master/libkuznechik.a
+	$(CC) build/main.o build/Parameters.o build/AsymmetricAuthenticationExtension.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o -o build/cryptotool.exe $(END) kuznechik/libkuznechik.a
 
 build/main.o: tool/main.cpp  
 	$(CC) -c tool/main.cpp -o build/main.o $(END)

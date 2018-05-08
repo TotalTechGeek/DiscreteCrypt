@@ -1,6 +1,6 @@
 #pragma once
 #include "CipherUtils.h"
-#include "../kuznechik-master/kuzcipher.h"
+#include "../kuznechik/kuzcipher.h"
 
 class KuznyechikEncryptor : public Encryptor
 {

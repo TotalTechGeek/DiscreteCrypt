@@ -27,7 +27,7 @@
 #include "../cryptopp/sha3.h"
 #include "KuznyechikEncryptor.h"
 #include "../cryptopp/modes.h"
-#include "../digestpp-master/digestpp.hpp"
+#include "../digestpp/digestpp.hpp"
 
 #include "AsymmetricAuthenticationExtension.h"
 #include <string>
