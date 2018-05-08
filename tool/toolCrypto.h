@@ -4,7 +4,7 @@
 #include "../cryptopp/osrng.h"
 #include "../cryptopp/cryptlib.h"
 #include "CipherUtils.h"
-#include "../cppcrypto/cppcrypto/cppcrypto.h"
+#include "HashBase.h"
 #include "AsymmetricAuthenticationExtension.h"
 #include <string>
 #include <iostream>
@@ -43,12 +43,15 @@ std::string getCipherName(CipherType p);
 void getEncryptor(CipherType p, Encryptor*& bc);
 void getDecryptor(CipherType p, Encryptor*& bc);
 
-void getHash(HashType h, cppcrypto::crypto_hash*& bc);
+void getHash(HashType h, Hash_Base*& bc);
+void getHmac(HashType h, Hash_Base*& bc, const std::string& key);
 
 
 std::string getHashName(HashType h);
 
 int getHashOutputSize(HashType h);
+int getHashBlockSize(HashType h);
+
 
 int getCipherKeySize(CipherType p);
 

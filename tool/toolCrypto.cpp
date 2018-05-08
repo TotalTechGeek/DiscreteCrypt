@@ -18,11 +18,18 @@
 #include "../cryptopp/sm4.h"
 
 #include "CryptoppCipher.h"
+#include "HMAC.h"
+#include "CryptoppHash.h"
+#include "HashNormal.h"
+#include "HashSqueeze.h"
+#include "../cryptopp/sha.h"
+#include "../cryptopp/whrlpool.h"
+#include "../cryptopp/sha3.h"
 #include "KuznyechikEncryptor.h"
 #include "../cryptopp/modes.h"
+#include "../digestpp-master/digestpp.hpp"
 
 #include "AsymmetricAuthenticationExtension.h"
-#include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -328,12 +335,11 @@ std::string getCipherName(CipherType p)
 
 void getEncryptor(CipherType p, Encryptor*& bc)
 {
-    using namespace CryptoPP;
     switch(p)
     {
         CIPHER_ENUM(MAKE_ENC)
-        //default:
-        //bc = new CTR_Mode<AES>::Encryption;
+        default:
+        bc = new CryptoppEncryptor<CryptoPP::AES>;
     }
 }
 
@@ -343,22 +349,36 @@ void getDecryptor(CipherType p, Encryptor*& bc)
     switch(p)
     {
         CIPHER_ENUM(MAKE_DEC)
-        //default:
-        //bc = new CTR_Mode<AES>::Decryption;
+        default:
+        bc = new CryptoppEncryptor<CryptoPP::AES>;
     }
 }
 
 
 // Gets the hash function.
-void getHash(HashType h, cppcrypto::crypto_hash*& bc)
+void getHash(HashType h, Hash_Base*& bc)
 {
-    using namespace cppcrypto;
+
+
     switch(h)
     {
         HASH_ENUM(MAKE_CONS)
-        default:
-        bc = new sha256;
-        break;
+        // default:
+        // bc = new sha256;
+        // break;
+    }
+}
+
+
+// Gets the hash function.
+void getHmac(HashType h, Hash_Base*& bc, const std::string& key)
+{
+    switch(h)
+    {
+        HASH_ENUM(MAKE_HMAC)
+        // default:
+        // bc = new sha256;
+        // break;
     }
 }
 
@@ -376,13 +396,21 @@ std::string getHashName(HashType h)
 // Gets the output size of the hash.
 int getHashOutputSize(HashType h)
 {
-    int res;
-    using namespace cppcrypto;
-    crypto_hash* bc;
-    getHash(h, bc);
-    res = bc->hashsize();
-    delete bc;
-    return res;
+    switch(h)
+    {
+        HASH_ENUM(MAKE_OUTSIZE)
+    }
+    return 0;
+}
+
+// Gets the output size of the hash.
+int getHashBlockSize(HashType h)
+{
+    switch(h)
+    {
+        HASH_ENUM(MAKE_BLOCKSIZE2)
+    }
+    return 0;
 }
 
 // Gets the size of the cipher's key.
@@ -519,7 +547,6 @@ void createFileKey(FileProperties& fp)
 // Computes an hmac for a file.
 void hmacFile(const std::string& filename, const std::vector<DataExtension>& extensions, FileProperties& fp)
 {
-    using namespace cppcrypto;
     using namespace std;
 
     // Establish a key.
@@ -531,19 +558,17 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
     fp.extensions = extensions.size();
 
     unsigned char* hash;
-    crypto_hash* bc;
+    Hash_Base* mac;
     
     // Gets the hash function for the hmac
-    getHash(fp.ht, bc);
+    getHmac(fp.ht, mac, fp.key);
 
-    hmac mac(*bc, (unsigned char*)fp.key.c_str(), keySize);
-    mac.init();
 
     // Include the extension count in the hash.
     // this is a File v3 Format adjustment. 
     // All the other parameters don't need to be included due to the fact that they're
     // integral to the decryption process.
-    mac.update((unsigned char*)&fp.extensions, sizeof(fp.extensions));
+    mac->absorb((unsigned char*)&fp.extensions, sizeof(fp.extensions));
 
     // Hashes each of the extensions.
     for(int i = 0; i < extensions.size(); i++)
@@ -552,16 +577,16 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
         int16_t len = (int16_t)output.length();
 
         // Write the extensions to the hmac
-        mac.update((unsigned char*)&len, sizeof(int16_t));
-        mac.update((unsigned char*)&output[0], len);
+        mac->absorb((unsigned char*)&len, sizeof(int16_t));
+        mac->absorb((unsigned char*)&output[0], len);
     }
 
     // opens the file to hmac
     ifstream fi(filename, ios::binary);
     
-    hash = new unsigned char[bc->hashsize() / 8]();
-    int x = bc->blocksize() / 8;
-    if(x == 0) x = bc->hashsize() / 8;
+    hash = new unsigned char[getHashOutputSize(fp.ht) / 8]();
+    int x = getHashBlockSize(fp.ht) / 8;
+    if(x == 0) x = getHashOutputSize(fp.ht) / 8;
 
     char* block = new char[x]();
 
@@ -577,28 +602,28 @@ void hmacFile(const std::string& filename, const std::vector<DataExtension>& ext
         while(fsize > x)
         {
             fi.read(block, x);
-            mac.update((unsigned char*)block, x);
+            mac->absorb((unsigned char*)block, x);
             fsize -= x;
         }
 
         if(fsize)
         {
             fi.read(block, fsize);
-            mac.update((unsigned char*)block, fsize);
+            mac->absorb((unsigned char*)block, fsize);
         }
 
-        mac.final(hash);
+        mac->digest(hash, getHashOutputSize(fp.ht) / 8);
     }
     
     // Set the FP's hmac.
     fp.hash = "";
-    fp.hash.append((char*)hash, bc->hashsize() / 8);
+    fp.hash.append((char*)hash, getHashOutputSize(fp.ht) / 8);
     fp.hash = hashPad(fp.hash, blockSize);
 
     fi.close();
     delete[] block;
     delete[] hash;
-    delete bc;
+    delete mac;
 }
 
 
@@ -911,7 +936,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 char decryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, std::vector<DataExtension>& extensions, const FileProperties& fp, const std::string& password, int person)
 {
     using namespace std;
-    using namespace cppcrypto;
     using CryptoPP::Integer;
 
     // Open the files.
@@ -947,14 +971,12 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
 
     // Sets up block cipher and hash algorithm.
-    cppcrypto::crypto_hash *hc; 
     Encryptor *bc;
-    getHash(fp.ht, hc);
     getDecryptor(fp.cp.cipherType, bc);
     
 
     // Sets up the hash output.
-    unsigned char* hash = new unsigned char[hc->hashsize() / 8];
+    unsigned char* hash = new unsigned char[getHashOutputSize(fp.ht) / 8];
     
     // Gets the byte size of the cipher's block and key sizes.
     int blocksize = getCipherBlockSize(fp.cp.cipherType) / 8;
@@ -1025,14 +1047,16 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     delete bc;
 
     // Sets up the payload authenticator 
-    hmac mac(*hc, okey, keysize);
-    mac.init();
+    std::string okeyStr((char*)okey, keysize);
+    Hash_Base *mac;
+    getHmac(fp.ht, mac, okeyStr);
+
 
     // Used for checking the number of extensions.
     // This will soon be mandatory. (No if-statement required)
     if(fp.version >= 3)
     {
-        mac.update((unsigned char*)&fp.extensions, sizeof(fp.extensions));
+        mac->absorb((unsigned char*)&fp.extensions, sizeof(fp.extensions));
     }
     
     // Establish the payload key.
@@ -1053,7 +1077,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
             // Read in the block, decrypt it, and add it to the hmac.
             fi.read(inBuf, blocksize);
             bc->process((unsigned char*)inBuf, (unsigned char*)outBuf, blocksize);
-            mac.update((unsigned char*)outBuf, blocksize);
+            mac->absorb((unsigned char*)outBuf, blocksize);
 
             // If there is still data to extract as an extension,
             if(extracted < fp.extensions)
@@ -1100,7 +1124,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
             // Read in the data left, decrypt it, and add it to the hmac.
             fi.read(inBuf, fsize);
             bc->process((unsigned char*)inBuf, (unsigned char*)outBuf, fsize);
-            mac.update((unsigned char*)outBuf, fsize);
+            mac->absorb((unsigned char*)outBuf, fsize);
             
             // If there are extensions to extract, 
             if(extracted < fp.extensions)
@@ -1154,18 +1178,18 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
 
     // Outputs the hmac
-    mac.final(hash);
+    mac->digest(hash, getHashOutputSize(fp.ht) / 8);
     char valid = 1;
 
     // Compares the hmacs.
-    for(int i = 0; i < hc->hashsize() / 8; i++)
+    for(int i = 0; i < getHashOutputSize(fp.ht) / 8; i++)
     {
         valid = valid && hash[i] == (unsigned char)fp.hash[i];
     }
 
 
     // Cleanup
-    delete hc;
+    delete mac;
     delete bc;
     delete[] ikey;
     delete[] okey;

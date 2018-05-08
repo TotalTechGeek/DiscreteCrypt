@@ -90,16 +90,17 @@ class DHParameters
     DO(SM4,             0250,   CryptoppEncryptor<CryptoPP::SM4>,           128,    128) \
 
 
-#define DO2(X, Y, Z, DO) \
-    DO(X ## _224, Y ## 0, Z(224)) \
-    DO(X ## _256, Y ## 1, Z(256)) \
-    DO(X ## _384, Y ## 2, Z(384)) \
-    DO(X ## _512, Y ## 3, Z(512)) \
+#define DO2(X, Y, Z, BLOCKSIZE, DO) \
+    DO(X ## _224, Y ## 0, Z, 224, BLOCKSIZE) \
+    DO(X ## _256, Y ## 1, Z, 256, BLOCKSIZE) \
+    DO(X ## _384, Y ## 2, Z, 384, BLOCKSIZE) \
+    DO(X ## _512, Y ## 3, Z, 512, BLOCKSIZE) \
 
-#define DO3(X, Y, Z, DO) \
-    DO2(X, Y, Z, DO) \
-    DO(X ## _1024, Y ## 4, Z(1024)) \
+#define DO3(X, Y, Z, BLOCKSIZE, DO) \
+    DO2(X, Y, Z, BLOCKSIZE, DO) \
+    DO(X ## _1024, Y ## 4, Z, 1024, BLOCKSIZE) \
        
+/*
 #define HASH_ENUM(DO) \
     DO(SHA256,              0000,       sha256) \
     DO(SHA384,              0001,       sha384) \
@@ -115,13 +116,37 @@ class DHParameters
     DO(Streebog512,         0201,       streebog(512)) \
     DO(Kupyna256,           0210,       kupyna(256)) \
     DO(Kupyna512,           0211,       kupyna(512)) \
- 
+ */
+
+#define HASH_ENUM(DO) \
+    DO(SHA256,          0000,   CryptoppHash<CryptoPP::SHA256>,     256,    512) \
+    DO(SHA384,          0001,   CryptoppHash<CryptoPP::SHA384>,     384,    1024) \
+    DO(SHA512,          0002,   CryptoppHash<CryptoPP::SHA512>,     512,    1024) \
+    DO(SHA3_224,        0010,   CryptoppHash<CryptoPP::SHA3_224>,   224,    1152) \
+    DO(SHA3_256,        0011,   CryptoppHash<CryptoPP::SHA3_256>,   256,    1088) \
+    DO(SHA3_384,        0012,   CryptoppHash<CryptoPP::SHA3_384>,   384,    832) \
+    DO(SHA3_512,        0013,   CryptoppHash<CryptoPP::SHA3_512>,   512,    576) \
+    DO3(SHAKE128,       002,    HashSqueeze<digestpp::shake128>,    1344,   DO) \
+    DO3(SHAKE256,       003,    HashSqueeze<digestpp::shake256>,    1088,   DO) \
+    DO3(Skein256,       010,    HashNormal<digestpp::skein256>,     256,    DO) \
+    DO3(Skein512,       011,    HashNormal<digestpp::skein512>,     512,    DO) \
+    DO3(Skein1024,      012,    HashNormal<digestpp::skein1024>,    1024,   DO) \
+    DO(Whirlpool,       0130,   CryptoppHash<CryptoPP::Whirlpool>,  512,    512) \
+    DO(Streebog256,     0200,   HashNormal2<digestpp::streebog>,    256,    512) \
+    DO(Streebog512,     0201,   HashNormal2<digestpp::streebog>,    512,    512) \
+    DO(Kupyna256,       0210,   HashNormal2<digestpp::kupyna>,      256,    512) \
+    DO(Kupyna512,       0211,   HashNormal2<digestpp::kupyna>,      512,    1024) \
+
+
         
-#define MAKE_STRING_ARRAY(VAR, VAL, CONS) #VAR,
-#define MAKE_INT_ARRAY(VAR, VAL, CONS) VAL,
-#define MAKE_ENUM(VAR, VAL, CONS) VAR = VAL,
-#define MAKE_STRING(VAR, VAL, CONS) case VAR: return #VAR;
-#define MAKE_CONS(VAR, VAL, CONS) case VAR: bc = new CONS; break;
+#define MAKE_STRING_ARRAY(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) #VAR,
+#define MAKE_INT_ARRAY(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) VAL,
+#define MAKE_ENUM(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) VAR = VAL,
+#define MAKE_STRING(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) case VAR: return #VAR;
+#define MAKE_CONS(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) case VAR: bc = new CONS(OUTSIZE); break;
+#define MAKE_HMAC(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) case VAR: bc = new HMAC<CONS, BLOCKSIZE / 8>(key, OUTSIZE); break;
+#define MAKE_OUTSIZE(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) case HashType::VAR: return OUTSIZE;
+#define MAKE_BLOCKSIZE2(VAR, VAL, CONS, OUTSIZE, BLOCKSIZE) case HashType::VAR: return BLOCKSIZE;
 
 #define MAKE_ENUM2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) VAR = VAL,
 #define MAKE_STRING_ARRAY2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) #VAR,

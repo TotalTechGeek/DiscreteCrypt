@@ -79,54 +79,45 @@ bool AsymmetricAuthenticationExtension::verify(std::string file, HashType ht, bo
 
 std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndHmacData(const std::string& data, const std::string& pass, HashType ht)
 {
-    using namespace cppcrypto;
     using namespace std;
     unsigned char *hash, *hash2;
-    crypto_hash *bc, *hc;
-    getHash(ht, bc);
+    Hash_Base *hc, *mac;
     getHash(ht, hc);
-
-    hmac mac(*bc, pass);
+    getHmac(ht, mac, pass);
     
-    mac.init();
-    hc->init(); 
-
-    hash = new unsigned char[bc->hashsize() / 8](), hash2 = new unsigned char[hc->hashsize() / 8]();
+    hash = new unsigned char[getHashOutputSize(ht) / 8](), hash2 = new unsigned char[getHashOutputSize(ht) / 8]();
     
 
-    mac.hash_string(data, hash);
-    hc->hash_string(data, hash2);
+    mac->absorb((unsigned char*)&data[0], data.length());
+    hc->absorb((unsigned char*)&data[0], data.length());
+
+    mac->digest(hash, getHashOutputSize(ht) / 8);
+    hc->digest(hash2, getHashOutputSize(ht) / 8);
 
 
     string res(""), res2("");
-    res.append((char*)hash, bc->hashsize() / 8);
-    res2.append((char*)hash2, hc->hashsize() / 8);
+    res.append((char*)hash, getHashOutputSize(ht) / 8);
+    res2.append((char*)hash2, getHashOutputSize(ht) / 8);
     
     delete[] hash;
     delete[] hash2;
-    delete bc; 
+    delete mac; 
     delete hc; 
     return make_tuple(res2, res);
 }
 
 std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndHmacFile(const std::string& file, const std::string& pass, HashType ht)
 {
-    using namespace cppcrypto;
     using namespace std;
     unsigned char *hash, *hash2;
-    crypto_hash *bc, *hc;
-    getHash(ht, bc);
+    Hash_Base *mac, *hc;
+    getHmac(ht, mac, pass);
     getHash(ht, hc);
 
-    hmac mac(*bc, pass);
-    
-    mac.init();
-    hc->init(); 
-
     ifstream fi(file, ios::binary);
-    hash = new unsigned char[bc->hashsize() / 8](), hash2 = new unsigned char[hc->hashsize() / 8]();
-    int x = bc->blocksize() / 8;
-    if(x == 0) x = bc->hashsize() / 8;
+    hash = new unsigned char[getHashOutputSize(ht) / 8](), hash2 = new unsigned char[getHashOutputSize(ht) / 8]();
+    int x = getHashBlockSize(ht) / 8;
+    if(x == 0) x = getHashOutputSize(ht) / 8;
     char* block = new char[x]();
     if(fi.good())
     {
@@ -139,8 +130,8 @@ std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndH
         {
             fi.read(block, x);
     
-            mac.update((unsigned char*)block, x);
-            hc->update((unsigned char*)block, x);
+            mac->absorb((unsigned char*)block, x);
+            hc->absorb((unsigned char*)block, x);
     
             fsize -= x;
         }
@@ -148,21 +139,21 @@ std::tuple<std::string, std::string> AsymmetricAuthenticationExtension::hashAndH
         {
             fi.read(block, fsize);
     
-            mac.update((unsigned char*)block, fsize);
-            hc->update((unsigned char*)block, fsize);
+            mac->absorb((unsigned char*)block, fsize);
+            hc->absorb((unsigned char*)block, fsize);
         }
-        mac.final(hash);
-        hc->final(hash2);
+        mac->digest(hash, getHashOutputSize(ht) / 8);
+        hc->digest(hash2, getHashOutputSize(ht) / 8);
     }
     string res(""), res2("");
-    res.append((char*)hash, bc->hashsize() / 8);
-    res2.append((char*)hash2, hc->hashsize() / 8);
+    res.append((char*)hash, getHashOutputSize(ht) / 8);
+    res2.append((char*)hash2, getHashOutputSize(ht) / 8);
     fi.close();
 
     delete[] block;
     delete[] hash;
     delete[] hash2;
-    delete bc; 
+    delete mac; 
     delete hc; 
     return make_tuple(res2, res);
 }

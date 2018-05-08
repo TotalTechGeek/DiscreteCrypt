@@ -1,9 +1,5 @@
 #pragma once
 #include <string>
-#include "../digestpp-master/digestpp.hpp"
-#include "../cppcrypto/cppcrypto/cppcrypto.h"
-
-
 
 class Hash_Base
 {

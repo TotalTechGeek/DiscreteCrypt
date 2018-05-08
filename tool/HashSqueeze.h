@@ -1,5 +1,6 @@
 #pragma once
 #include "HashBase.h"
+#include <cassert>
 template <class T> class HashSqueeze : public Hash_Base
 {
     private:
@@ -7,7 +8,12 @@ template <class T> class HashSqueeze : public Hash_Base
     int size; 
     public:
 
-    HashSqueeze(int size) : size(size), hashFunc(new T())
+    HashSqueeze() : size(256 / 8), hashFunc(new T())
+    {
+
+    }
+
+    HashSqueeze(int size) : size(size / 8), hashFunc(new T())
     {
 
     }
@@ -17,7 +23,6 @@ template <class T> class HashSqueeze : public Hash_Base
         delete hashFunc;
     }
 
-
     void absorb(const unsigned char* buf, int len) override
     {
         hashFunc->absorb(buf, len);    
@@ -25,9 +30,11 @@ template <class T> class HashSqueeze : public Hash_Base
 
     void digest(unsigned char* buf, int len) override
     {
-        assert(len >= size / 8);
-
-        hashFunc->squeeze(buf, size);    
+        unsigned char *buf2 = new unsigned char[len * 8]();
+        assert(len >= size);
+        hashFunc->squeeze(buf2, size);
+        memcpy(buf, buf2, size);
+        delete[] buf2;
     }
 
     std::string hexdigest() override

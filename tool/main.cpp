@@ -17,6 +17,8 @@
 #include "Parameters.h"
 #include "toolCrypto.h"
 
+#include "HMAC.h"
+
 using namespace std;
 using CryptoPP::Integer;
 using CryptoPP::OS_GenerateRandomBlock;
@@ -483,70 +485,6 @@ void sign(ProgramParams& programParams, const string& from, const string& file, 
     }
 }
 
-/*
-#include "HashNormal.h"
-#include "HashSqueeze.h"
-
-void testHmac()
-{
-    using namespace cppcrypto;
- 
-    // I need to write an hmac algorithm using digestpp
-
-    
-    const int BLOCKSIZE = 1088 / 8;
-    const int OUTSIZE = 512 / 8;
-    
-   
-    Hash_Base *x = new HashSqueeze<digestpp::shake256>(512), *y = new HashSqueeze<digestpp::shake256>(512);
-
-    unsigned char *buf = new unsigned char[OUTSIZE * 8];
-
-
-    string key = "hello";
-
-    if(key.length() > BLOCKSIZE)
-    {
-        //digestpp::shake256 hashKey(512);
-        //hashKey.absorb(key).digest((unsigned char*)&key[0], BLOCKSIZE);
-    }
-    
-    while(key.length() < BLOCKSIZE)
-    {
-        key += '\0';
-    }
-
-    string key2 = key;
-
-    for(int i = 0; i < BLOCKSIZE; i++)
-    {
-        key[i] ^= 0x36; //ikey
-        key2[i] ^= 0x5c; //okey
-    }
-
-    char *buf2 = new char[OUTSIZE];
-
-    x->absorb((unsigned char*)&key[0], BLOCKSIZE);
-    x->absorb((unsigned char*)"Hello World", 11);
-    x->digest(buf, OUTSIZE);
-    
-    y->absorb((unsigned char*)&key2[0], BLOCKSIZE);
-    y->absorb(buf, OUTSIZE);
-    y->digest(buf, OUTSIZE);
-    
-    cout << to_hex((char*)buf, OUTSIZE) << endl;    
-    hmac hm2(shake256(512), "hello");
-    hm2.hash_string("Hello World", (unsigned char*)buf2);
-
-    
-    cout << to_hex(buf2, OUTSIZE) << endl;
-    
-    delete[] buf;
-    delete[] buf2;
-    delete x;
-    delete y;
-}
-*/
 
 
 void extractContact(ProgramParams& programParams, const string& in, const string& out)
@@ -646,6 +584,42 @@ void pdh(const DHParameters & dh)
     cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
 }
 
+
+/*
+#include "../cppcrypto/cppcrypto/cppcrypto.h"
+#include "../digestpp-master/digestpp.hpp"
+#include "HashSqueeze.h"
+#include "CryptoppHash.h"
+#include "../cryptopp/sha3.h"
+void testHMAC()
+{
+
+    unsigned char buf[256 / 8];
+    char item[] = "Hello World";
+    
+    using namespace cppcrypto;
+    hmac x(shake128(256), "pass");
+    x.hash_string(item, buf);
+
+    cout << to_hex((char*)buf, 32) << endl;
+
+    shake128 z(256);
+
+    cout << z.blocksize() << endl;
+    
+    Hash_Base *hash = new HMAC<HashSqueeze<digestpp::shake128>, 1344 / 8>("pass", 256);
+
+
+
+    hash->absorb((unsigned char*)item, 11);
+
+
+    
+    hash->digest(buf, 32);
+    cout << to_hex((char*)buf, 32) << endl;
+}
+*/
+
 // Todo: Provide a method of allowing a person to "claim" a new fingerprint, both in an encrypted file and in a separate format.
 // Todo: Create a lightweight C++ API and migrate some of the current code to be more OO friendly. 
 // Todo: Provide new constructs to be able to define concepts like "protocols". This will allow codebases to employ concepts like "trust". 
@@ -653,9 +627,11 @@ void pdh(const DHParameters & dh)
 // The identity field will eventually use JSON.
 int main(int argc, char**args)
 {
+
+    // testHMAC();    
+
     string command;
     ProgramParams programParams;
-    testHmac();
     if(argc >= 2)
     {
         // CLI 

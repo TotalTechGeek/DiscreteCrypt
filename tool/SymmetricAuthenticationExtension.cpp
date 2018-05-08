@@ -22,7 +22,6 @@ std::string SymmetricAuthenticationExtension::prompt() const
 
 DataExtension SymmetricAuthenticationExtension::out() const
 {
-    using namespace cppcrypto;
     DataExtension de;
     de.et = ExtensionType::SYMMETRIC;
 
@@ -40,7 +39,6 @@ DataExtension SymmetricAuthenticationExtension::out() const
 
 bool SymmetricAuthenticationExtension::check(std::string pass, std::string file, HashType ht) const
 {
-    using namespace cppcrypto;
     using namespace std;
     std::string str = hmacFile(file, pass, ht);
     return str == this->data;
@@ -48,17 +46,15 @@ bool SymmetricAuthenticationExtension::check(std::string pass, std::string file,
 
 std::string SymmetricAuthenticationExtension::hmacFile(const std::string& filename, const std::string& pass, HashType ht) const
 {
-    using namespace cppcrypto;
     using namespace std;
     unsigned char* hash;
-    crypto_hash* bc;
-    getHash(ht, bc);
-    hmac mac(*bc, pass);
-    mac.init();
+    Hash_Base* mac;
+    getHmac(ht, mac, pass);
+    
     ifstream fi(filename, ios::binary);
-    hash = new unsigned char[bc->hashsize() / 8]();
-    int x = bc->blocksize() / 8;
-    if(x == 0) x = bc->hashsize() / 8;
+    hash = new unsigned char[getHashOutputSize(ht) / 8]();
+    int x = getHashBlockSize(ht) / 8;
+    if(x == 0) x = getHashOutputSize(ht) / 8;
     char* block = new char[x]();
     if(fi.good())
     {
@@ -70,23 +66,23 @@ std::string SymmetricAuthenticationExtension::hmacFile(const std::string& filena
         while(fsize > x)
         {
             fi.read(block, x);
-            mac.update((unsigned char*)block, x);
+            mac->absorb((unsigned char*)block, x);
             fsize -= x;
         }
         if(fsize)
         {
             fi.read(block, fsize);
-            mac.update((unsigned char*)block, fsize);
+            mac->absorb((unsigned char*)block, fsize);
         }
-        mac.final(hash);
+        mac->digest(hash, getHashOutputSize(ht) / 8);
     }
     string res("");
-    res.append((char*)hash, bc->hashsize() / 8);
+    res.append((char*)hash, getHashOutputSize(ht) / 8);
     
     fi.close();
     delete[] block;
     delete[] hash;
-    delete bc;   
+    delete mac;   
     return res;
 }
 

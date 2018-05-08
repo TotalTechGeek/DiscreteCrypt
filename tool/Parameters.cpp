@@ -222,14 +222,15 @@ std::string Contact::uid(HashType ht) const
 
     // Don't use the identity, this could be modified.
     con.person.identity = "";
-    crypto_hash *hc;
+    Hash_Base *hc;
 
     getHash(ht, hc);
-    hc->init();
-    unsigned char* hashOut = new unsigned char[hc->hashsize() / 8]();
+    unsigned char* hashOut = new unsigned char[getHashOutputSize(ht) / 8]();
 
-    hc->hash_string(con.out(), hashOut);
-    result.append((char*)hashOut, hc->hashsize() / 8);
+    std::string str = con.out();
+    hc->absorb((unsigned char*)&str.c_str()[0], str.length());
+    hc->digest(hashOut, getHashOutputSize(ht) / 8);
+    result.append((char*)hashOut, getHashOutputSize(ht) / 8);
     delete[] hashOut;
     delete hc;
     return result;
