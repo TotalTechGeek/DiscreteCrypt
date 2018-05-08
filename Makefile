@@ -1,15 +1,15 @@
 ifeq ($(OS),Windows_NT)
-	CC = g++ -s -static -O3 -std=gnu++11 
-	END = cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -lssp
+	CC = g++ -O2 -static -s -std=gnu++11 
+	END = cryptopp/libcryptopp.a  -lssp -fstack-protector -Wl,--stack,8000000
 else
-	CC = g++ -O3 -std=gnu++11 
-	END = cppcrypto/cppcrypto/libcppcrypto.a cryptopp/libcryptopp.a -msse2 -fstack-protector -lpthread
+	CC = g++ -O2 -std=gnu++11 
+	END = cryptopp/libcryptopp.a -msse2 -fstack-protector -lpthread
 endif
 
 all: build/cryptotool.exe
 
-build/cryptotool.exe: build/Parameters.o build/main.o build/SymmetricAuthenticationExtension.o build/AsymmetricAuthenticationExtension.o build/toolCrypto.o
-	$(CC) build/main.o build/Parameters.o build/AsymmetricAuthenticationExtension.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o -o build/cryptotool.exe $(END)
+build/cryptotool.exe: build/Parameters.o build/main.o build/SymmetricAuthenticationExtension.o build/AsymmetricAuthenticationExtension.o build/toolCrypto.o 
+	$(CC) build/main.o build/Parameters.o build/AsymmetricAuthenticationExtension.o build/SymmetricAuthenticationExtension.o build/toolCrypto.o -o build/cryptotool.exe $(END) kuznechik-master/libkuznechik.a
 
 build/main.o: tool/main.cpp  
 	$(CC) -c tool/main.cpp -o build/main.o $(END)
