@@ -116,8 +116,10 @@ class DHParameters
     DO(Whirlpool,       0130,   CryptoppHash<CryptoPP::Whirlpool>,  512,    512) \
     DO(Streebog256,     0200,   HashNormal2<digestpp::streebog>,    256,    512) \
     DO(Streebog512,     0201,   HashNormal2<digestpp::streebog>,    512,    512) \
-    DO(Kupyna256,       0210,   HashNormal2<digestpp::kupyna>,      256,    512) \
-    DO(Kupyna512,       0211,   HashNormal2<digestpp::kupyna>,      512,    1024) \
+    DO(Kupyna_224,      0210,   HashNormal2<digestpp::kupyna>,      224,    512) \
+    DO(Kupyna_256,      0211,   HashNormal2<digestpp::kupyna>,      256,    512) \
+    DO(Kupyna_384,      0212,   HashNormal2<digestpp::kupyna>,      384,    1024) \
+    DO(Kupyna_512,      0213,   HashNormal2<digestpp::kupyna>,      512,    1024) \
 
 
         
