@@ -3,7 +3,7 @@
 #include "Parameters.h"
 #include "../cryptopp/osrng.h"
 #include "../cryptopp/cryptlib.h"
-
+#include "CipherUtils.h"
 #include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include "AsymmetricAuthenticationExtension.h"
 #include <string>
@@ -40,8 +40,8 @@ std::string getCipherName(CipherType p);
 
 // This is somewhat of a factory design pattern.
 
-void getEncryptor(CipherType p, CryptoPP::SymmetricCipher*& bc);
-void getDecryptor(CipherType p, CryptoPP::SymmetricCipher*& bc);
+void getEncryptor(CipherType p, Encryptor*& bc);
+void getDecryptor(CipherType p, Encryptor*& bc);
 
 void getHash(HashType h, cppcrypto::crypto_hash*& bc);
 
@@ -55,6 +55,7 @@ int getCipherKeySize(CipherType p);
 int getCipherBlockSize(CipherType p);
 
 std::string to_hex(const std::string& str);
+std::string to_hex(const char* str, int len);
 
 template <class T>
 void encodeFile(T& c, const std::string& fileName);

@@ -483,6 +483,72 @@ void sign(ProgramParams& programParams, const string& from, const string& file, 
     }
 }
 
+/*
+#include "HashNormal.h"
+#include "HashSqueeze.h"
+
+void testHmac()
+{
+    using namespace cppcrypto;
+ 
+    // I need to write an hmac algorithm using digestpp
+
+    
+    const int BLOCKSIZE = 1088 / 8;
+    const int OUTSIZE = 512 / 8;
+    
+   
+    Hash_Base *x = new HashSqueeze<digestpp::shake256>(512), *y = new HashSqueeze<digestpp::shake256>(512);
+
+    unsigned char *buf = new unsigned char[OUTSIZE * 8];
+
+
+    string key = "hello";
+
+    if(key.length() > BLOCKSIZE)
+    {
+        //digestpp::shake256 hashKey(512);
+        //hashKey.absorb(key).digest((unsigned char*)&key[0], BLOCKSIZE);
+    }
+    
+    while(key.length() < BLOCKSIZE)
+    {
+        key += '\0';
+    }
+
+    string key2 = key;
+
+    for(int i = 0; i < BLOCKSIZE; i++)
+    {
+        key[i] ^= 0x36; //ikey
+        key2[i] ^= 0x5c; //okey
+    }
+
+    char *buf2 = new char[OUTSIZE];
+
+    x->absorb((unsigned char*)&key[0], BLOCKSIZE);
+    x->absorb((unsigned char*)"Hello World", 11);
+    x->digest(buf, OUTSIZE);
+    
+    y->absorb((unsigned char*)&key2[0], BLOCKSIZE);
+    y->absorb(buf, OUTSIZE);
+    y->digest(buf, OUTSIZE);
+    
+    cout << to_hex((char*)buf, OUTSIZE) << endl;    
+    hmac hm2(shake256(512), "hello");
+    hm2.hash_string("Hello World", (unsigned char*)buf2);
+
+    
+    cout << to_hex(buf2, OUTSIZE) << endl;
+    
+    delete[] buf;
+    delete[] buf2;
+    delete x;
+    delete y;
+}
+*/
+
+
 void extractContact(ProgramParams& programParams, const string& in, const string& out)
 {
     string command;
@@ -589,7 +655,7 @@ int main(int argc, char**args)
 {
     string command;
     ProgramParams programParams;
-
+    testHmac();
     if(argc >= 2)
     {
         // CLI 

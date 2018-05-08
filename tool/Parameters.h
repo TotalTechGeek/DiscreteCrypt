@@ -45,52 +45,50 @@ class DHParameters
 
 // Name, ID, Cipher, Block Size, Key Size
 #define CIPHER_ENUM(DO) \
-    DO(AES128,          0000,   AES,            128,    128) \
-    DO(AES192,          0001,   AES,            128,    192) \
-    DO(AES256,          0002,   AES,            128,    256) \
-    DO(Threefish256,    0100,   Threefish256,   256,    256) \
-    DO(Threefish512,    0101,   Threefish512,   512,    512) \
-    DO(Threefish1024,   0102,   Threefish1024,  1024,   1024) \
-    DO(Camellia128,     0110,   Camellia,       128,    128) \
-    DO(Camellia192,     0111,   Camellia,       128,    192) \
-    DO(Camellia256,     0112,   Camellia,       128,    256) \
-    DO(Serpent128,      0120,   Serpent,        128,    128) \
-    DO(Serpent192,      0121,   Serpent,        128,    192) \
-    DO(Serpent256,      0122,   Serpent,        128,    256) \
-    DO(Twofish128,      0130,   Twofish,        128,    128) \
-    DO(Twofish192,      0131,   Twofish,        128,    192) \
-    DO(Twofish256,      0132,   Twofish,        128,    256) \
-    DO(Mars128,         0140,   MARS,           128,    128) \
-    DO(Mars160,         0141,   MARS,           128,    160) \
-    DO(Mars192,         0142,   MARS,           128,    192) \
-    DO(Mars224,         0143,   MARS,           128,    224) \
-    DO(Mars256,         0144,   MARS,           128,    256) \
-    DO(Mars384,         0145,   MARS,           128,    384) \
-    DO(Mars448,         0146,   MARS,           128,    448) \
-    DO(Cast6_128,       0150,   CAST256,        128,    128) \
-    DO(Cast6_160,       0151,   CAST256,        128,    160) \
-    DO(Cast6_192,       0152,   CAST256,        128,    192) \
-    DO(Cast6_224,       0153,   CAST256,        128,    224) \
-    DO(Cast6_256,       0154,   CAST256,        128,    256) \
-    DO(Aria128,         0210,   ARIA,           128,    128) \
-    DO(Aria192,         0211,   ARIA,           128,    192) \
-    DO(Aria256,         0212,   ARIA,           128,    256) \
-    DO(Speck128_128,    0220,   SPECK128,       128,    128) \
-    DO(Speck128_192,    0221,   SPECK128,       128,    192) \
-    DO(Speck128_256,    0222,   SPECK128,       128,    256) \
-    DO(Simon128_128,    0230,   SIMON128,       128,    128) \
-    DO(Simon128_192,    0231,   SIMON128,       128,    192) \
-    DO(Simon128_256,    0232,   SIMON128,       128,    256) \
-    DO(Kalyna128_128,   0240,   Kalyna128,      128,    128) \
-    DO(Kalyna128_256,   0241,   Kalyna128,      128,    256) \
-    DO(Kalyna256_256,   0242,   Kalyna256,      256,    256) \
-    DO(Kalyna256_512,   0243,   Kalyna256,      256,    512) \
-    DO(Kalyna512_512,   0244,   Kalyna512,      512,    512) \
-    DO(SM4,             0250,   SM4,            128,    128) \
+    DO(AES128,          0000,   CryptoppEncryptor<CryptoPP::AES>,           128,    128) \
+    DO(AES192,          0001,   CryptoppEncryptor<CryptoPP::AES>,           128,    192) \
+    DO(AES256,          0002,   CryptoppEncryptor<CryptoPP::AES>,           128,    256) \
+    DO(Threefish256,    0100,   CryptoppEncryptor<CryptoPP::Threefish256>,  256,    256) \
+    DO(Threefish512,    0101,   CryptoppEncryptor<CryptoPP::Threefish512>,  512,    512) \
+    DO(Threefish1024,   0102,   CryptoppEncryptor<CryptoPP::Threefish1024>, 1024,   1024) \
+    DO(Camellia128,     0110,   CryptoppEncryptor<CryptoPP::Camellia>,      128,    128) \
+    DO(Camellia192,     0111,   CryptoppEncryptor<CryptoPP::Camellia>,      128,    192) \
+    DO(Camellia256,     0112,   CryptoppEncryptor<CryptoPP::Camellia>,      128,    256) \
+    DO(Serpent128,      0120,   CryptoppEncryptor<CryptoPP::Serpent>,       128,    128) \
+    DO(Serpent192,      0121,   CryptoppEncryptor<CryptoPP::Serpent>,       128,    192) \
+    DO(Serpent256,      0122,   CryptoppEncryptor<CryptoPP::Serpent>,       128,    256) \
+    DO(Twofish128,      0130,   CryptoppEncryptor<CryptoPP::Twofish>,       128,    128) \
+    DO(Twofish192,      0131,   CryptoppEncryptor<CryptoPP::Twofish>,       128,    192) \
+    DO(Twofish256,      0132,   CryptoppEncryptor<CryptoPP::Twofish>,       128,    256) \
+    DO(Mars128,         0140,   CryptoppEncryptor<CryptoPP::MARS>,          128,    128) \
+    DO(Mars160,         0141,   CryptoppEncryptor<CryptoPP::MARS>,          128,    160) \
+    DO(Mars192,         0142,   CryptoppEncryptor<CryptoPP::MARS>,          128,    192) \
+    DO(Mars224,         0143,   CryptoppEncryptor<CryptoPP::MARS>,          128,    224) \
+    DO(Mars256,         0144,   CryptoppEncryptor<CryptoPP::MARS>,          128,    256) \
+    DO(Mars384,         0145,   CryptoppEncryptor<CryptoPP::MARS>,          128,    384) \
+    DO(Mars448,         0146,   CryptoppEncryptor<CryptoPP::MARS>,          128,    448) \
+    DO(Cast6_128,       0150,   CryptoppEncryptor<CryptoPP::CAST256>,       128,    128) \
+    DO(Cast6_160,       0151,   CryptoppEncryptor<CryptoPP::CAST256>,       128,    160) \
+    DO(Cast6_192,       0152,   CryptoppEncryptor<CryptoPP::CAST256>,       128,    192) \
+    DO(Cast6_224,       0153,   CryptoppEncryptor<CryptoPP::CAST256>,       128,    224) \
+    DO(Cast6_256,       0154,   CryptoppEncryptor<CryptoPP::CAST256>,       128,    256) \
+    DO(Kuznyechik,      0200,   KuznyechikEncryptor,                        128,    256) \
+    DO(Aria128,         0210,   CryptoppEncryptor<CryptoPP::ARIA>,          128,    128) \
+    DO(Aria192,         0211,   CryptoppEncryptor<CryptoPP::ARIA>,          128,    192) \
+    DO(Aria256,         0212,   CryptoppEncryptor<CryptoPP::ARIA>,          128,    256) \
+    DO(Speck128_128,    0220,   CryptoppEncryptor<CryptoPP::SPECK128>,      128,    128) \
+    DO(Speck128_192,    0221,   CryptoppEncryptor<CryptoPP::SPECK128>,      128,    192) \
+    DO(Speck128_256,    0222,   CryptoppEncryptor<CryptoPP::SPECK128>,      128,    256) \
+    DO(Simon128_128,    0230,   CryptoppEncryptor<CryptoPP::SIMON128>,      128,    128) \
+    DO(Simon128_192,    0231,   CryptoppEncryptor<CryptoPP::SIMON128>,      128,    192) \
+    DO(Simon128_256,    0232,   CryptoppEncryptor<CryptoPP::SIMON128>,      128,    256) \
+    DO(Kalyna128_128,   0240,   CryptoppEncryptor<CryptoPP::Kalyna128>,     128,    128) \
+    DO(Kalyna128_256,   0241,   CryptoppEncryptor<CryptoPP::Kalyna128>,     128,    256) \
+    DO(Kalyna256_256,   0242,   CryptoppEncryptor<CryptoPP::Kalyna256>,     256,    256) \
+    DO(Kalyna256_512,   0243,   CryptoppEncryptor<CryptoPP::Kalyna256>,     256,    512) \
+    DO(Kalyna512_512,   0244,   CryptoppEncryptor<CryptoPP::Kalyna512>,     512,    512) \
+    DO(SM4,             0250,   CryptoppEncryptor<CryptoPP::SM4>,           128,    128) \
 
-    /*
-    DO(Kuznyechik,      0200,   kuznyechik) \
-    */
 
 #define DO2(X, Y, Z, DO) \
     DO(X ## _224, Y ## 0, Z(224)) \
@@ -115,7 +113,9 @@ class DHParameters
     DO(Whirlpool,           0130,       whirlpool) \
     DO(Streebog256,         0200,       streebog(256)) \
     DO(Streebog512,         0201,       streebog(512)) \
-    DO2(Kupyna,             021,       kupyna, DO) \
+    DO(Kupyna256,           0210,       kupyna(256)) \
+    DO(Kupyna512,           0211,       kupyna(512)) \
+ 
         
 #define MAKE_STRING_ARRAY(VAR, VAL, CONS) #VAR,
 #define MAKE_INT_ARRAY(VAR, VAL, CONS) VAL,
@@ -129,8 +129,8 @@ class DHParameters
 #define MAKE_STRING2(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case VAR: return #VAR;
 #define MAKE_BLOCKSIZE(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: return BLOCKSIZE;
 #define MAKE_KEYSIZE(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: return KEYSIZE;
-#define MAKE_ENC(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: bc = new CTR_Mode<CryptoPP::CONS>::Encryption; break; 
-#define MAKE_DEC(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: bc = new CTR_Mode<CryptoPP::CONS>::Decryption; break;
+#define MAKE_ENC(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: bc = new CONS; break; 
+#define MAKE_DEC(VAR, VAL, CONS, BLOCKSIZE, KEYSIZE) case CipherType::VAR: bc = new CONS; break;
 
 
 const int16_t AVAILABLE_CIPHERS_CODES[] = {

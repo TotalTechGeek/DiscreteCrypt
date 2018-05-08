@@ -17,7 +17,8 @@
 #include "../cryptopp/kalyna.h"
 #include "../cryptopp/sm4.h"
 
-
+#include "CryptoppCipher.h"
+#include "KuznyechikEncryptor.h"
 #include "../cryptopp/modes.h"
 
 #include "AsymmetricAuthenticationExtension.h"
@@ -325,25 +326,25 @@ std::string getCipherName(CipherType p)
 }
 
 
-void getEncryptor(CipherType p, CryptoPP::SymmetricCipher*& bc)
+void getEncryptor(CipherType p, Encryptor*& bc)
 {
     using namespace CryptoPP;
     switch(p)
     {
         CIPHER_ENUM(MAKE_ENC)
-        default:
-        bc = new CTR_Mode<AES>::Encryption;
+        //default:
+        //bc = new CTR_Mode<AES>::Encryption;
     }
 }
 
-void getDecryptor(CipherType p, CryptoPP::SymmetricCipher*& bc)
+void getDecryptor(CipherType p, Encryptor*& bc)
 {
     using namespace CryptoPP;
     switch(p)
     {
         CIPHER_ENUM(MAKE_DEC)
-        default:
-        bc = new CTR_Mode<AES>::Decryption;
+        //default:
+        //bc = new CTR_Mode<AES>::Decryption;
     }
 }
 
@@ -708,9 +709,14 @@ std::tuple<std::string, AsymmetricAuthenticationSignature> debundleFile(const st
 
 std::string to_hex(const std::string& str)
 {
+    return to_hex(&str[0], str.length());
+}
+
+std::string to_hex(const char* str, int len)
+{
     std::string result;
     static char lookup[] = "0123456789ABCDEF";
-    for(int i = 0; i < str.length(); i++)
+    for(int i = 0; i < len; i++)
     {
         result += lookup[(str[i] >> 4) & 15];
         result += lookup[str[i] & 15];
@@ -760,19 +766,14 @@ std::vector<Exchange> createExchanges(const std::vector<Contact>& recipients, Fi
 void encryptFile(const std::string& fileName, const std::string& outputFile, const std::vector<Exchange>& exchanges, const std::vector<DataExtension>& extensions, const FileProperties& fp, const std::string& password)
 {
     using namespace std;
-    using namespace cppcrypto;
     using CryptoPP::Integer;
-
-    using CryptoPP::AES;
-    using CryptoPP::CTR_Mode;
-    using CryptoPP::SymmetricCipher; 
 
     // Opens the files.
     ifstream fi(fileName, ios::binary);
     ofstream fo(outputFile, ios::binary);
 
     // Gets the block cipher to encrypt the key with.
-    SymmetricCipher* encryptor; 
+    Encryptor* encryptor; 
     
     // Grabs the block size and key size for the cipher.
     // Divisible by 8 because we're actually getting byte size (as opposed to bit size).
@@ -821,13 +822,13 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         string scr = intToScrypt(exchanges[i].computed, exchanges[i].sp, getCipherKeySize(fp.cp.cipherType), fp);
         const unsigned char* key = (unsigned char*)scr.c_str();
     
-        encryptor->SetKeyWithIV(key, keysize, iv, blocksize);
+        encryptor->setKeyWithIV(key, keysize, iv, blocksize);
 
         // Output buffer for encryption.
         unsigned char *okey = new unsigned char[fp.key.size()]();
 
         // Processes the key
-        encryptor->ProcessData(okey, ikey, fp.key.size());
+        encryptor->process(ikey, okey, fp.key.size());
         
         // Writes the encrypted key to a file.
         fo.write((char*)okey, keysize);
@@ -852,7 +853,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
 
    
     getEncryptor(fp.cp.cipherType, encryptor);
-    encryptor->SetKeyWithIV(ikey, keysize, iv, blocksize);
+    encryptor->setKeyWithIV(ikey, keysize, iv, blocksize);
 
     // Tests the file
     if(fi.good() && !fi.bad())
@@ -871,7 +872,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
             out.append(&output[0], len);
         }
 
-       encryptor->ProcessData((unsigned char*)&out[0], (unsigned char*)&out[0], out.size());
+       encryptor->process((unsigned char*)&out[0], (unsigned char*)&out[0], out.size());
        fo.write(&out[0], out.size());
        
 
@@ -879,7 +880,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         while(fsize > blocksize)
         {
             fi.read(inBuf, blocksize);
-            encryptor->ProcessData((unsigned char*)outBuf, (unsigned char*)inBuf, blocksize);
+            encryptor->process((unsigned char*)inBuf, (unsigned char*)outBuf, blocksize);
             fo.write(outBuf, blocksize);
             fsize -= blocksize;
         }
@@ -888,7 +889,7 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         if(fsize)
         {
             fi.read(inBuf, fsize);
-            encryptor->ProcessData((unsigned char*)outBuf, (unsigned char*)inBuf, fsize);
+            encryptor->process((unsigned char*)inBuf, (unsigned char*)outBuf, fsize);
             fo.write(outBuf, fsize);
         }
     }
@@ -912,10 +913,6 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     using namespace std;
     using namespace cppcrypto;
     using CryptoPP::Integer;
-
-    using CryptoPP::AES;
-    using CryptoPP::CTR_Mode;
-    using CryptoPP::SymmetricCipher; 
 
     // Open the files.
     ifstream fi(fileName, ios::binary);
@@ -950,8 +947,8 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
 
 
     // Sets up block cipher and hash algorithm.
-    crypto_hash *hc; 
-    SymmetricCipher *bc;
+    cppcrypto::crypto_hash *hc; 
+    Encryptor *bc;
     getHash(fp.ht, hc);
     getDecryptor(fp.cp.cipherType, bc);
     
@@ -1010,7 +1007,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     unsigned char* key = (unsigned char*)scr.c_str();
 
     // Use the exchange's decryption key to establish a set up a block cipher.
-    bc->SetKeyWithIV(key, keysize, iv, blocksize);
+    bc->setKeyWithIV(key, keysize, iv, blocksize);
 
     // Read in the selected key, and ignore the others.
     for(int i = 0; i < exchanges.size(); i++)
@@ -1021,7 +1018,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     }
 
     // Decrypts the payload key
-    bc->ProcessData(okey, ikey, keysize);
+    bc->process(ikey, okey, keysize);
     
 
     // Delete the block cipher.
@@ -1040,7 +1037,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     
     // Establish the payload key.
     getDecryptor(fp.cp.cipherType, bc);
-    bc->SetKeyWithIV(okey, keysize, iv, blocksize);
+    bc->setKeyWithIV(okey, keysize, iv, blocksize);
     
     // File test
     if(fi.good() && !fi.bad())
@@ -1055,7 +1052,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         {
             // Read in the block, decrypt it, and add it to the hmac.
             fi.read(inBuf, blocksize);
-            bc->ProcessData((unsigned char*)outBuf, (unsigned char*)inBuf, blocksize);
+            bc->process((unsigned char*)inBuf, (unsigned char*)outBuf, blocksize);
             mac.update((unsigned char*)outBuf, blocksize);
 
             // If there is still data to extract as an extension,
@@ -1102,7 +1099,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         {
             // Read in the data left, decrypt it, and add it to the hmac.
             fi.read(inBuf, fsize);
-            bc->ProcessData((unsigned char*)outBuf, (unsigned char*)inBuf, fsize);
+            bc->process((unsigned char*)inBuf, (unsigned char*)outBuf, fsize);
             mac.update((unsigned char*)outBuf, fsize);
             
             // If there are extensions to extract, 
