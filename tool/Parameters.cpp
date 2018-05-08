@@ -1,6 +1,4 @@
 #include "Parameters.h"
-
-#include "../cppcrypto/cppcrypto/cppcrypto.h"
 #include "toolCrypto.h"
 
 // Eventually we'll break this into separate files. 
@@ -215,7 +213,6 @@ std::string Contact::out() const
 
 std::string Contact::uid(HashType ht) const
 {
-    using namespace cppcrypto;
     std::string result;
 
     Contact con(*this);
