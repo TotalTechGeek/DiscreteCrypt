@@ -840,12 +840,15 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     unsigned char* ikey = (unsigned char*)&fp.key[0];
 
 
+    // Used to determine what the derived key size will be.
     int derivedKeySize = keysize;
 
     // Eventually: Remove this.
     // This will be deprecated in production relatively soon. 
     if(fp.version == 3)
     {
+        // There was an old "bug" (not a security risk) where the derived key was longer 
+        // than necessary.
         derivedKeySize = keysize * 8;
     }
 
@@ -853,7 +856,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     for(int i = 0; i < exchanges.size(); i++)
     {
         // Derives a key from the exchange to encrypt the payload key with. 
-        // This is actually a bug right here, as the key size should really be / 8.
         string scr = intToScrypt(exchanges[i].computed, exchanges[i].sp, derivedKeySize, fp);
         const unsigned char* key = (unsigned char*)scr.c_str();
     
@@ -1041,6 +1043,8 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     // This will be deprecated in production relatively soon. 
     if(fp.version == 3)
     {
+        // There was an old "bug" (not a security risk) where the derived key was longer 
+        // than necessary.
         derivedKeySize = keysize * 8;
     }
 
