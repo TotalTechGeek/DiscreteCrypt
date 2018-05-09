@@ -6,6 +6,25 @@ This tool is an alternative to software like PGP, with a focus on Discrete Log C
 
 The tool features powerful authenticated encryption, dozens of strong symmetric ciphers and hash algorithms, future-proof design choices, and a variety of other features (like OTR-Style symmetric authentication, anonymous senders, etc). 
 
+## Usability
+
+The tool is pretty user-friendly to people with command-line experience. Encrypting a file securely (with default parameters) is as simple as:  
+
+```bash
+cryptotool -to alice file file.enc # Encrypts a file anonymously to alice
+```
+
+Creating a "contact" for yourself is as simple as:
+
+```bash
+cryptotool -contact bob # Creates a contact in a file called "bob"
+```
+
+And opening a file is as simple as:
+```bash
+cryptotool -open file.enc file # Opens the encrypted file
+```
+
 ## To Build
 
 This algorithm uses a build tool I wrote called "dave". It requires Java 8+ or greater. 
@@ -25,6 +44,15 @@ If building on Windows, it is recommended that you build the project from either
 
 MSVC support may be added in the future.
 
+## Features
+
+DiscreteCrypt is a powerful replacement for tools that are similar to PGP. It supports a plethora of features, like deniable encryption, symmetric authentication, signature bundling, multiple recipients, and much more. 
+
+With a focus on customizability, the tool supports a total of 43 unique cipher options, featuring algorithms like AES, Kuznyechik, Camellia, and Threefish. The tool similarly supports 39 unique hashing options, including the SHA2 family, SHA3, Whirlpool, and Skein.
+
+Internally, the tool uses Scrypt for key derivation, which is tuned to mitigate brute-force attacks.  
+
+A full list is available in the user documentation. 
 
 ## User Documentation
 
