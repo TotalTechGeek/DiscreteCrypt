@@ -19,20 +19,29 @@ function build(x)
     {
         sys("cd " + x + "; make")
     }
+}
 
-
+if(!detect("git"))
+{
+    say("Warning: The current build script requires git.")
 }
 
 build('cryptopp')
 
-
-
-sys("git clone https://github.com/TotalTechGeek/kuznechik", function()
-{    
-    if(exists("ARM")) copy("resources/kuz", "kuznechik/Makefile")
+if(exists("kuznechik"))
+{
     build('kuznechik')    
-})
+}
+else
+{
+    sys("git clone https://github.com/TotalTechGeek/kuznechik", function()
+    {    
+        if(exists("ARM")) copy("resources/kuz", "kuznechik/Makefile")
+        build('kuznechik')    
+    })
+}
 
+if(!exists("digestpp"))
 sys("git clone https://github.com/kerukuro/digestpp", function()
 {
 
