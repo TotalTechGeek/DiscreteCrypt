@@ -697,6 +697,30 @@ AsymmetricAuthenticationSignature debundleFile(const std::string& fileName, cons
     return aas;
 }
 
+
+std::string DISCRETECRYPT_CONFIG()
+{
+#ifdef _WIN32
+    return std::string(getenv("appdata")) + "/.discretecrypt";
+#else 
+    return "~/.discretecrypt";
+#endif
+}
+
+void discrete_mkdir(const std::string& str)
+{
+    int nError = 0;
+    #if defined(_WIN32)
+      nError = _mkdir(str.c_str()); // can be used on Windows
+    #else 
+        int nMode = 0733; // UNIX style permissions
+        nError = mkdir(str.c_str(), nMode); // can be used on non-Windows
+    #endif
+    if (nError != 0) {
+//      std::cout << nError << std::endl;
+    }
+}
+
 std::tuple<std::string, AsymmetricAuthenticationSignature> debundleFile(const std::string& fileName)
 {
     using namespace std;
@@ -747,6 +771,17 @@ std::string to_hex(const char* str, int len)
         result += lookup[str[i] & 15];
     }
     return result;
+}
+
+// Checks if the file exists.
+bool checkFileExists(const std::string& name)
+{
+    if (FILE *file = fopen(name.c_str(), "r")) 
+    {
+        fclose(file);
+        return true;
+    } 
+    return false;  
 }
 
 

@@ -10,11 +10,30 @@
 #include <iostream>
 #include <tuple>
 #include <fstream>
+#include <stdlib.h>  
+#include <stdio.h>  
+
 
 // This is done for convenience.
 #define aes256 rijndael128_256
 #define aes192 rijndael128_192
 #define aes128 rijndael128_128
+
+
+
+#ifdef _WIN32
+    #include <direct.h>      
+   #ifdef _WIN64
+   #else
+   #endif
+#else 
+    #include <sys/types.h> 
+    #include <sys/stat.h> 
+#endif
+
+std::string DISCRETECRYPT_CONFIG();
+
+void discrete_mkdir(const std::string& str);
 
 std::string getScrypt(const std::string& password, const std::string& salt, int N = DISCRETECRYPT_DEFAULT_N, int p = DISCRETECRYPT_DEFAULT_P, int r = DISCRETECRYPT_DEFAULT_R, int len = DISCRETECRYPT_DEFAULT_LEN);
 
@@ -24,8 +43,6 @@ int getch();
 #endif
 
 std::string getPassword();
-
-
 CryptoPP::Integer stringToCryptoInt(const std::string& s);
 std::string cryptoIntToString(const CryptoPP::Integer& n);
 CryptoPP::Integer passwordToPrivate(const std::string& pass, const std::string& salt, const ScryptParameters& sp);
@@ -65,6 +82,8 @@ void encodeFile(T& c, const std::string& fileName);
 
 template <class T>
 void decodeFile(T& c, const std::string& fileName);
+
+bool checkFileExists(const std::string& name);
 
 void decodeEncrypted(std::vector<Exchange>& exchanges, FileProperties& fp, const std::string& fileName);
 

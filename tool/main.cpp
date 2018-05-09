@@ -87,6 +87,41 @@ namespace StringSplitFunctions
 	}
 }
 
+std::string getFileName(const std::string& path)
+{
+    std::string p = path;
+    vector<string> split;
+    StringSplitFunctions::replacePart(p, "\\", "@");
+    StringSplitFunctions::replacePart(p, "/", "@");
+    StringSplitFunctions::splitString(split, p, "@");
+
+    return split[split.size() -1];
+}
+
+std::string getContact(const std::string& contact)
+{
+    std::string result("");
+    
+    if(checkFileExists(contact))
+    {
+        result = contact;
+    }
+    else if(checkFileExists(contact + ".contact"))
+    {
+        result = contact + ".contact";
+    }
+    else if(checkFileExists(DISCRETECRYPT_CONFIG() + "/contacts/" + contact))
+    {
+        result = DISCRETECRYPT_CONFIG() + "/contacts/" + contact; 
+    }
+    else if(checkFileExists(DISCRETECRYPT_CONFIG() + "/contacts/" + contact + ".contact"))
+    {
+        result = DISCRETECRYPT_CONFIG() + "/contacts/" + contact + ".contact";
+    }
+
+    return result;
+}
+
 void dhtest(ProgramParams& programParams)
 {
     CryptoPP::AutoSeededRandomPool rnd;
@@ -123,7 +158,9 @@ void verify(ProgramParams& programParams, const string& sig, const string& file)
     cout << (aas.verify(file) ? "Signature Verified" : "Signature Verification Failed") << endl;
 }
 
-void to(ProgramParams& programParams, const string& contact, const string& file, const string& ofile, bool cli = false)
+
+
+void to(ProgramParams& programParams, const string& contact, const string& file, const string& ofile)
 {
     string password("");
     vector<Contact> recipients;
@@ -139,18 +176,29 @@ void to(ProgramParams& programParams, const string& contact, const string& file,
     for(int i = 0; i < recipients_s.size(); i++)
     {
         Contact recipient;
-        if(!cli) recipients_s[i].append(".contact");
-        decodeFile(recipient, recipients_s[i]);
-        recipients.push_back(recipient);
-    }
+
+        // gets the contact
+        recipients_s[i] = getContact(recipients_s[i]);
         
-    // bad debug command to test sending "from"
+        // If the contact actually exists
+        if(recipients_s[i].length())
+        {
+            decodeFile(recipient, recipients_s[i]); 
+            recipients.push_back(recipient);       
+        }
+    }
+
+    // The "from" code.
     if(programParams.from.length())
     {
-        cout << "Password for " << programParams.from << ": ";
-        password = getPassword();
-        decodeFile(fromCon, programParams.from);
-        con = &fromCon;               
+        string from = getContact(programParams.from);
+        if(from.length())
+        {
+            cout << "Password for " << from << ": ";
+            password = getPassword();
+            decodeFile(fromCon, from);
+            con = &fromCon;               
+        }
     }
 
     vector<Exchange> exchanges = createExchanges(recipients, fp, password, con);
@@ -472,8 +520,9 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
 void sign(ProgramParams& programParams, const string& from, const string& file, const string& ofile)
 {
     string password;
+
     Contact con;
-    decodeFile(con, from);
+    decodeFile(con, getContact(from));
     
     cout << "Password: ";
     password = getPassword();
@@ -542,7 +591,7 @@ void contact(ProgramParams& programParams, const string& outfile)
 void checkContact(ProgramParams& programParams, const string& contactFile)
 {
     Contact con;
-    decodeFile(con, contactFile);
+    decodeFile(con, getContact(contactFile));
     cout << "Password: "; 
     string password = getPassword();
     bool verified = con.verify(password);
@@ -582,6 +631,23 @@ void pdh(const DHParameters & dh)
     cout << endl;
     tie(pohlig, factors) = dh.pohlig();
     cout << pohlig << " (" << pohlig.BitCount() << ")" << endl;
+}
+
+void import(ProgramParams& programParams, const std::string& file)
+{
+    string outFile = DISCRETECRYPT_CONFIG() + "/contacts/" + getFileName(file);
+    if(checkFileExists(outFile))
+    {
+        if(!programParams.force)
+        {   
+            cout << "Contact already exists under this name. Use --force to overwrite." << endl;
+            return;
+        }
+    }
+
+    std::ifstream src(file, std::ios::binary);
+    std::ofstream dst(outFile, std::ios::binary);
+    dst << src.rdbuf();
 }
 
 
@@ -627,8 +693,9 @@ void testHMAC()
 // The identity field will eventually use JSON.
 int main(int argc, char**args)
 {
-
-    // testHMAC();    
+    discrete_mkdir(DISCRETECRYPT_CONFIG());
+    discrete_mkdir(DISCRETECRYPT_CONFIG() + "/contacts");
+    
 
     string command;
     ProgramParams programParams;
@@ -676,7 +743,7 @@ int main(int argc, char**args)
                     string ofile = args[++i];
 
                     Contact c;
-                    decodeFile(c, contact);
+                    decodeFile(c, getContact(contact));
                     cout << "Password: "; 
                     string password = getPassword();
                     bundleFile(file, ofile, c, password, programParams.h);
@@ -745,6 +812,10 @@ int main(int argc, char**args)
                 {
                     contact(programParams, args[++i]);
                 }
+                else if(cur == "import" || cur == "i")
+                {
+                    import(programParams, args[++i]);
+                }
                 else if(cur == "exc")
                 {
                     string in = args[++i];
@@ -761,7 +832,7 @@ int main(int argc, char**args)
                     string con = args[++i];
                     string file = args[++i];
                     string ofile = args[++i];
-                    to(programParams, con, file, ofile, true);
+                    to(programParams, con, file, ofile);
                 }
                 else if(cur == "pe")
                 {
