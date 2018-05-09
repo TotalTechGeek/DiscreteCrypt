@@ -289,7 +289,7 @@ void previewEncrypted(ProgramParams& programParams, const string& file)
 void previewContact(const string& contactFile)
 {
     Contact con;
-    decodeFile(con, contactFile);
+    decodeFile(con, getContact(contactFile));
 
     cout << "Identity: " << con.person.identity << endl
          << "Salt: 0x" << con.person.saltHex() << endl
@@ -635,6 +635,10 @@ void pdh(const DHParameters & dh)
 
 void import(ProgramParams& programParams, const std::string& file)
 {
+    Contact con; 
+    decodeFile(con, file);
+    cout << "Importing contact with UID: 0x" << con.uidHex() << endl;
+
     string outFile = DISCRETECRYPT_CONFIG() + "/contacts/" + getFileName(file);
     if(checkFileExists(outFile))
     {
