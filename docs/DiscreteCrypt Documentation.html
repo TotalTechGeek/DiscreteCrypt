@@ -9,25 +9,25 @@
 </head>
 
 <body class="stackedit">
-  <div class="stackedit__html"><h1 id="discretecrypt-v2.2">DiscreteCrypt v2.2</h1>
+  <div class="stackedit__html"><h1 id="discretecrypt-v2.2.5">DiscreteCrypt v2.2.5</h1>
 <p>This is the documentation for the tool DiscreteCrypt, which is a BSD-2 Licensed replacement for tools like PGP/GPG designed for flexibility and ease of use.</p>
 <p>The tool uses a Hybrid Cryptosystem built on Discrete Log Cryptography (hence, <em>Discrete</em>Crypt). This design choice makes it far more convenient to support ease of use.</p>
 <h1 id="quick-start">Quick Start</h1>
 <p>If you want to be able to quickly use the tool without reading the rest of the documentation, this quick start is provided. There are three basic functionalities you need to know.</p>
 <h3 id="creating-a-contact-file">Creating a Contact File</h3>
 <p>This allows people to send stuff to you securely, just use:</p>
-<pre><code>cryptotool -contact alice.contact
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -contact alice.contact
 </code></pre>
 <h3 id="sending-an-encrypted-file-to-a-contact">Sending an Encrypted File to a Contact</h3>
 <p>To send an encrypted file quickly (and anonymously) to a contact (like Bob), you just use a command like:</p>
-<pre><code>cryptotool -to bob.contact file.zip file.zip.enc
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -to bob.contact file.zip file.zip.enc
 </code></pre>
 <p>If you want to send it FROM your contact, you use</p>
-<pre><code>cryptotool -from alice.contact -to bob.contact file.zip file.zip.enc
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -from alice.contact -to bob.contact file.zip file.zip.enc
 </code></pre>
 <h3 id="opening-encrypted-files">Opening Encrypted Files</h3>
 <p>This command allows you to open encrypted files that are sent to your personal contact files.</p>
-<pre><code>cryptotool -open file.zip.enc file.zip
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -open file.zip.enc file.zip
 </code></pre>
 <h1 id="main-commands-and-parameters">Main Commands and Parameters</h1>
 <p>It is important to note that DiscreteCrypt command line arguments are parsed from left to right, with no program-defined limits on how many commands can be performed in a single execution.</p>
@@ -84,6 +84,10 @@
 <tr>
 <td>-check &lt;contact&gt;</td>
 <td>Used to check a password against a contact file.</td>
+</tr>
+<tr>
+<td>-<strong>i</strong>mport &lt;contact&gt;</td>
+<td>Used to import a contact file into the local DiscreteCrypt directory, which can store contacts globally for your user account.</td>
 </tr>
 </tbody>
 </table><h2 id="extra-commands-and-parameters">Extra Commands And Parameters</h2>
@@ -172,26 +176,26 @@
 </tbody>
 </table><h2 id="example-commands">Example Commands</h2>
 <p>Creating a contact.</p>
-<pre><code>cryptotool -contact jdoe.contact
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -contact jdoe.contact
 </code></pre>
 <p>Sending a file anonymously.</p>
-<pre><code>cryptotool -to jdm.contact file.zip file.zip.enc
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -to jdm.contact file.zip file.zip.enc
 </code></pre>
 <p>Sending a file from jdoe to jdm,</p>
-<pre><code>cryptotool -from jdoe.contact -to jdm.contact file.zip file.zip.enc
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -from jdoe.contact -to jdm.contact file.zip file.zip.enc
 </code></pre>
 <p>Setting the cipher to Kuznyechik and using Skein512_384 as the hash algorithm,</p>
-<pre><code>cryptotool -ciph 200 -hash 112 -from jdoe.contact -to jdm.contact file.zip file.zip.enc
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -ciph 200 -hash 112 -from jdoe.contact -to jdm.contact file.zip file.zip.enc
 </code></pre>
 <p>Opening the encrypted file,</p>
-<pre><code>cryptotool -o file.zip.enc file.zip
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -o file.zip.enc file.zip
 </code></pre>
 <p><strong>Complex Command</strong></p>
-<pre><code>cryptotool -c Me -from Me -ciph 212 -hash 12 --prompt "Where did we meet 4/2/2018?" -to jdm.contact file.zip file.zip.enc 
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -c Me -from Me -ciph 212 -hash 12 --prompt <span class="token string">"Where did we meet 4/2/2018?"</span> -to jdm.contact file.zip file.zip.enc 
 </code></pre>
 <h1 id="supported-ciphers">Supported Ciphers</h1>
 <p>This is the list of supported ciphers.  To use these in DiscreteCrypt, use the parameter</p>
-<pre><code>-ciph &lt;code #&gt;
+<pre class=" language-bash"><code class="prism  language-bash">-ciph <span class="token operator">&lt;</span>code <span class="token comment">#&gt;</span>
 </code></pre>
 <p>Prior to executing the command that uses it (like to).</p>
 
@@ -378,7 +382,7 @@
 </tbody>
 </table><h1 id="supported-hashes">Supported Hashes</h1>
 <p>This is the list of supported hashes.  To use these in DiscreteCrypt, use the parameter</p>
-<pre><code>-hash &lt;code #&gt;
+<pre class=" language-bash"><code class="prism  language-bash">-hash <span class="token operator">&lt;</span>code <span class="token comment">#&gt;</span>
 </code></pre>
 <p>Prior to executing the command that uses it (like to, sign, bundle, etc).</p>
 
@@ -547,7 +551,24 @@
 <td>213</td>
 </tr>
 </tbody>
-</table></div>
+</table><h1 id="discretecrypt-directory">DiscreteCrypt Directory</h1>
+<p>DiscreteCrypt  has a configuration directory that will be used extensively in future iterations of the software. Currently it is being used to store contacts.</p>
+<h2 id="location">Location</h2>
+<p>On Windows it is located at:</p>
+<pre><code>%appdata%\.discretecrypt
+</code></pre>
+<p>And on Unix</p>
+<pre><code>~/.discretecrypt
+</code></pre>
+<h2 id="using-imported-contacts">Using Imported Contacts</h2>
+<p>The tool will automatically grab imported contacts from the DiscreteCrypt directory when a matching contact file doesn’t exist in the current working directory.</p>
+<p>Example Usage:</p>
+<pre class=" language-bash"><code class="prism  language-bash">cryptotool -import jdm.contact
+<span class="token function">rm</span> jdm.contact <span class="token comment">#</span>
+cryptotool -to jdm <span class="token function">file</span> file.enc <span class="token comment"># This will find the imported "jdm.contact" file. </span>
+</code></pre>
+<p>It is okay to omit the “.contact” extension when referencing contact files. The tool will detect  this and handle it appropriately.</p>
+</div>
 </body>
 
 </html>

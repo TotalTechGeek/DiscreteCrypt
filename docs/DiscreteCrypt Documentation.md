@@ -1,4 +1,4 @@
-﻿# DiscreteCrypt v2.2
+﻿# DiscreteCrypt v2.2.5
 
 This is the documentation for the tool DiscreteCrypt, which is a BSD-2 Licensed replacement for tools like PGP/GPG designed for flexibility and ease of use. 
 
@@ -10,22 +10,22 @@ If you want to be able to quickly use the tool without reading the rest of the d
 
 ### Creating a Contact File
 This allows people to send stuff to you securely, just use:
-```
+```bash
 cryptotool -contact alice.contact
 ```
 ### Sending an Encrypted File to a Contact
 To send an encrypted file quickly (and anonymously) to a contact (like Bob), you just use a command like:
-```
+```bash
 cryptotool -to bob.contact file.zip file.zip.enc
 ```
 If you want to send it FROM your contact, you use
-```
+```bash
 cryptotool -from alice.contact -to bob.contact file.zip file.zip.enc
 ```
 
 ### Opening Encrypted Files
 This command allows you to open encrypted files that are sent to your personal contact files.
-```
+```bash
 cryptotool -open file.zip.enc file.zip
 ```
 
@@ -49,6 +49,7 @@ Command | Use
 -hash <code&gt; | Sets the hash algorithm to be used by following commands. *(See Supported Hash Algorithms)*
 -ciph <code&gt; | Sets the cipher to be used by following commands. *(See Supported Ciphers)*
 -check <contact&gt; | Used to check a password against a contact file. 
+-**i**mport <contact&gt; | Used to import a contact file into the local DiscreteCrypt directory, which can store contacts globally for your user account. 
 
 ## Extra Commands And Parameters 
 
@@ -78,32 +79,32 @@ These are the lesser used auxiliary commands.
 ## Example Commands
 
 Creating a contact.
-```
+```bash
 cryptotool -contact jdoe.contact
 ```
 
 Sending a file anonymously. 
-```
+```bash
 cryptotool -to jdm.contact file.zip file.zip.enc
 ```
 
 Sending a file from jdoe to jdm, 
-```
+```bash
 cryptotool -from jdoe.contact -to jdm.contact file.zip file.zip.enc
 ```
 
 Setting the cipher to Kuznyechik and using Skein512_384 as the hash algorithm, 
-``` 
+``` bash
 cryptotool -ciph 200 -hash 112 -from jdoe.contact -to jdm.contact file.zip file.zip.enc
 ```
 
 Opening the encrypted file,
-```
+```bash
 cryptotool -o file.zip.enc file.zip
 ```
 **Complex Command**
 
-```
+```bash
 cryptotool -c Me -from Me -ciph 212 -hash 12 --prompt "Where did we meet 4/2/2018?" -to jdm.contact file.zip file.zip.enc 
 ```
 
@@ -111,7 +112,7 @@ cryptotool -c Me -from Me -ciph 212 -hash 12 --prompt "Where did we meet 4/2/201
 
 # Supported Ciphers
 This is the list of supported ciphers.  To use these in DiscreteCrypt, use the parameter
-```
+```bash
 -ciph <code #>
 ```
 Prior to executing the command that uses it (like to). 
@@ -164,7 +165,7 @@ SM4 | 250
 
 # Supported Hashes
 This is the list of supported hashes.  To use these in DiscreteCrypt, use the parameter
-```
+```bash
 -hash <code #>
 ```
 Prior to executing the command that uses it (like to, sign, bundle, etc). 
@@ -210,3 +211,28 @@ Kupyna_224 | 210
 Kupyna_256 | 211
 Kupyna_384 | 212
 Kupyna_512 | 213
+
+# DiscreteCrypt Directory
+DiscreteCrypt  has a configuration directory that will be used extensively in future iterations of the software. Currently it is being used to store contacts. 
+
+##  Location
+On Windows it is located at:
+```
+%appdata%\.discretecrypt
+```
+And on Unix
+```
+~/.discretecrypt
+```
+
+## Using Imported Contacts
+The tool will automatically grab imported contacts from the DiscreteCrypt directory when a matching contact file doesn't exist in the current working directory.
+
+Example Usage:
+```bash
+cryptotool -import jdm.contact
+rm jdm.contact #
+cryptotool -to jdm file file.enc # This will find the imported "jdm.contact" file. 
+```
+
+It is okay to omit the ".contact" extension when referencing contact files. The tool will detect  this and handle it appropriately.
