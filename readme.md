@@ -2,7 +2,7 @@
 
 ![Imgur](https://svgshare.com/i/67o.svg)
 
-This tool is an alternative to software like PGP, with a focus on Discrete Log Cryptography. The algorithm is currently in v2.2.
+This tool is an alternative to software like PGP, with a focus on Discrete Log Cryptography. The algorithm is currently in v2.2.5.
 
 The tool features powerful authenticated encryption, dozens of strong symmetric ciphers and hash algorithms, future-proof design choices, and a variety of other features (like OTR-Style symmetric authentication, anonymous senders, etc). 
 
