@@ -19,7 +19,9 @@ Which will execute the init script. This will build the code for x86, x86_64, an
 
 The tool will grab the necessary dependencies to build the project (like cryptopp, digestpp, and my modified kuznyechik library).
 
-This tool is developed to compile with g++, clang (aliased as g++), and Mingw32_64. The compiler must have C++11 support, previous compilers are untested.
+This tool is developed to compile with g++, clang (aliased as g++), and Mingw32_64. The compiler must have C++11 support.
+
+If building on Windows, it is recommended that you build the project from either [cmder](http://cmder.net/) or a unix-like shell. 
 
 MSVC support may be added in the future.
 
