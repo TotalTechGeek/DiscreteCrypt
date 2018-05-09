@@ -839,12 +839,22 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     // Points to the key to encrypt the payload with.
     unsigned char* ikey = (unsigned char*)&fp.key[0];
 
+
+    int derivedKeySize = keysize;
+
+    // Eventually: Remove this.
+    // This will be deprecated in production relatively soon. 
+    if(fp.version == 3)
+    {
+        derivedKeySize = keysize * 8;
+    }
+
     // For each of the exchanges, encrypt the key used for payload encryption.
     for(int i = 0; i < exchanges.size(); i++)
     {
         // Derives a key from the exchange to encrypt the payload key with. 
         // This is actually a bug right here, as the key size should really be / 8.
-        string scr = intToScrypt(exchanges[i].computed, exchanges[i].sp, getCipherKeySize(fp.cp.cipherType), fp);
+        string scr = intToScrypt(exchanges[i].computed, exchanges[i].sp, derivedKeySize, fp);
         const unsigned char* key = (unsigned char*)scr.c_str();
     
         encryptor->setKeyWithIV(key, keysize, iv, blocksize);
@@ -1024,8 +1034,18 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     // Computes the exchange
     Integer p = a_exp_b_mod_c(pub, priv, ex.dh.mod());
 
+    // Used to determine what the derived key size will be.
+    int derivedKeySize = keysize;
+
+    // Eventually: Remove this.
+    // This will be deprecated in production relatively soon. 
+    if(fp.version == 3)
+    {
+        derivedKeySize = keysize * 8;
+    }
+
     // Derives the decryption key from the exchange.
-    string scr = intToScrypt(p, ex.sp, getCipherKeySize(fp.cp.cipherType), fp);
+    string scr = intToScrypt(p, ex.sp, derivedKeySize, fp);
     unsigned char* key = (unsigned char*)scr.c_str();
 
     // Use the exchange's decryption key to establish a set up a block cipher.

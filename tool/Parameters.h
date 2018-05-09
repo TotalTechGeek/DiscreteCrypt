@@ -3,7 +3,7 @@
 #include <string>
 
 #include <tuple>
-#define DISCRETECRYPT_FILE_VERSION 3
+#define DISCRETECRYPT_FILE_VERSION 4
 
 
 #define DISCRETECRYPT_DEFAULT_N 1 << 14

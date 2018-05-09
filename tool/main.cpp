@@ -424,7 +424,7 @@ void open(ProgramParams& programParams, const string& file, const string& ofile)
     if(fp.version < DISCRETECRYPT_FILE_VERSION)
     {
         cout << "Warning: Decrypting an old file format." << endl;
-        if(fp.version == 2)
+        if(fp.version == 2 || fp.version == 3)
         {
             if(programParams.force);
             else
