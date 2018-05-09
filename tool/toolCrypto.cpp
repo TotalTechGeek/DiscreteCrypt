@@ -703,7 +703,13 @@ std::string DISCRETECRYPT_CONFIG()
 #ifdef _WIN32
     return std::string(getenv("appdata")) + "/.discretecrypt";
 #else 
-    return "~/.discretecrypt";
+    const char *homedir;
+
+    if ((homedir = getenv("HOME")) == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+
+    return std::string(homedir) + "/.discretecrypt";
 #endif
 }
 
