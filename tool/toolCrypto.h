@@ -16,7 +16,7 @@
 #define aes192 rijndael128_192
 #define aes128 rijndael128_128
 
-std::string getScrypt(const std::string& password, const std::string& salt, int N = 1 << 14, int p = 16, int r = 8, int len = 32);
+std::string getScrypt(const std::string& password, const std::string& salt, int N = DISCRETECRYPT_DEFAULT_N, int p = DISCRETECRYPT_DEFAULT_P, int r = DISCRETECRYPT_DEFAULT_R, int len = DISCRETECRYPT_DEFAULT_LEN);
 
 #if defined(_WIN32) || defined(_WIN64)
 #else

@@ -102,7 +102,7 @@ CipherParams::CipherParams(const CipherParams& c) : cipherType(c.cipherType), mo
 {
 }
 
-ScryptParameters::ScryptParameters() : N(1 << 14), P(16), R(8), len(64)
+ScryptParameters::ScryptParameters() : N(DISCRETECRYPT_DEFAULT_N), P(DISCRETECRYPT_DEFAULT_P), R(DISCRETECRYPT_DEFAULT_R), len(DISCRETECRYPT_DEFAULT_LEN)
 {
 }
 

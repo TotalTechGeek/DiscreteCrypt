@@ -28,13 +28,14 @@ build('cryptopp')
 
 
 sys("git clone https://github.com/TotalTechGeek/kuznechik", function()
-{
+{    
+    if(exists("ARM")) copy("resources/kuz", "kuznechik/Makefile")
     build('kuznechik')    
 })
 
 sys("git clone https://github.com/kerukuro/digestpp", function()
 {
-    
+
 })
 
 function make_program()

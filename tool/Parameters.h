@@ -5,6 +5,13 @@
 #include <tuple>
 #define DISCRETECRYPT_FILE_VERSION 3
 
+
+#define DISCRETECRYPT_DEFAULT_N 1 << 14
+#define DISCRETECRYPT_DEFAULT_R 10
+#define DISCRETECRYPT_DEFAULT_P 3
+#define DISCRETECRYPT_DEFAULT_LEN 64
+
+
 class DHParameters
 {
     private:

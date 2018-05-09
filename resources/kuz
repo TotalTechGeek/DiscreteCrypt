@@ -1,0 +1,35 @@
+# Makefile
+# 04-Jan-15 Markku-Juhani O. Saarinen <mjos@iki.fi>
+
+BIN	= xtest 
+OUT = libkuznechik.a
+OBJS	= main.o \
+	kuznechik_128bit.o \
+	ctr.o
+#	kuznechik_8bit.o
+
+DIST	= kuznechik
+
+EXTRA = -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -D__ARM_NEON_
+CC	= g++ -std=c++11 $(EXTRA)
+CFLAGS	= -Ofast -static
+LIBS	=
+LDFLAGS	= -Ofast -s -static
+INCS	=
+
+
+$(OUT): $(OBJS) 
+	ar crf $(OUT) $(OBJS) $(LIBS)
+
+$(BIN): $(OBJS)
+	$(CC) $(LDFLAG) -o $(BIN) $(OBJS) $(LIBS)
+
+.cpp.o:
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+
+clean:
+	rm -rf $(DIST)-*.t?z $(OBJS) $(BIN) *~
+
+dist:	clean
+	cd ..; \
+	tar cfvJ $(DIST)/$(DIST)-`date -u "+%Y%m%d%H%M00"`.txz $(DIST)/*
