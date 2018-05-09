@@ -8,7 +8,9 @@ The tool features powerful authenticated encryption, dozens of strong symmetric 
 
 ## Usability
 
-The tool is pretty user-friendly to people with command-line experience. Encrypting a file securely (with default parameters) is as simple as:  
+The tool is pretty user-friendly to people with command-line experience. 
+
+Encrypting a file securely is as simple as:  
 
 ```bash
 cryptotool -to alice file file.enc # Encrypts a file anonymously to alice
