@@ -9,7 +9,7 @@
 </head>
 
 <body class="stackedit">
-  <div class="stackedit__html"><h1 id="discretecrypt-v2.1">DiscreteCrypt v2.1</h1>
+  <div class="stackedit__html"><h1 id="discretecrypt-v2.2">DiscreteCrypt v2.2</h1>
 <p>This is the documentation for the tool DiscreteCrypt, which is a BSD-2 Licensed replacement for tools like PGP/GPG designed for flexibility and ease of use.</p>
 <p>The tool uses a Hybrid Cryptosystem built on Discrete Log Cryptography (hence, <em>Discrete</em>Crypt). This design choice makes it far more convenient to support ease of use.</p>
 <h1 id="quick-start">Quick Start</h1>
@@ -140,6 +140,10 @@
 <tr>
 <td>-exdhc &lt;contact&gt; &lt;dh out&gt;</td>
 <td>Extracts Discrete Log / DH Parameters from a contact file.</td>
+</tr>
+<tr>
+<td>--deniable</td>
+<td>Allows the sender of a file to deny authorship. Excludes signatures from the encrypted file.</td>
 </tr>
 <tr>
 <td>--prompt &lt;prompt&gt;</td>
