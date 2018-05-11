@@ -787,6 +787,7 @@ bool checkFileExists(const std::string& name)
         fclose(file);
         return true;
     } 
+    
     return false;  
 }
 
@@ -851,7 +852,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
     // Gets the file parameters output data.
     string output = fp.out();
     int16_t len = (int16_t)output.length();
-
 
     // Write the header (FP)
     fo.write((char*)&len, sizeof(int16_t));
@@ -972,8 +972,6 @@ void encryptFile(const std::string& fileName, const std::string& outputFile, con
         }
     }
 
-
-
     // cleanup
     delete encryptor;
     delete[] inBuf;
@@ -1022,11 +1020,9 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         fsize -= sizeof(int16_t);
     }
 
-
     // Sets up block cipher and hash algorithm.
     Encryptor *bc;
     getDecryptor(fp.cp.cipherType, bc);
-    
 
     // Sets up the hash output.
     unsigned char* hash = new unsigned char[getHashOutputSize(fp.ht) / 8];
@@ -1127,14 +1123,14 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
     // Establish the payload key.
     getDecryptor(fp.cp.cipherType, bc);
     bc->setKeyWithIV(okey, keysize, iv, blocksize);
-    
+
+    std::string out, buf;
+
     // File test
     if(fi.good() && !fi.bad())
     {
         int extracted = 0;
         int16_t left = -1;
-        std::string out;
-        std::string buf;
 
         // While there are full blocks to decrypt
         while(fsize > blocksize)
@@ -1162,7 +1158,7 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
                 {
                     // remove it from the buffer, then increment the number of extensions read.
                     out.append(&buf[0], left + sizeof(int16_t));
-                    buf = buf.substr(left + sizeof(int16_t));
+                    buf = buf.substr(left + sizeof(int16_t));                    
                     left = -1;
                     extracted++;
                 }
@@ -1225,22 +1221,8 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
                 // Write the rest of the data to the output file.
                 fo.write(outBuf, fsize);
             }
-        }
-
-        // Parses the Extensions
-        DataExtension ex;
-        int offset = 0;
-        for(int i = 0; i < fp.extensions; i++)
-        {
-            len = *(int16_t*)&out[offset];
-            offset += sizeof(int16_t);
-            ex.parse(out, offset);
-            extensions.push_back(ex);
-            offset += len;
-        }   
-        
+        }        
     }
-
 
     // Outputs the hmac
     mac->digest(hash, getHashOutputSize(fp.ht) / 8);
@@ -1252,6 +1234,23 @@ char decryptFile(const std::string& fileName, const std::string& outputFile, con
         valid = valid && hash[i] == (unsigned char)fp.hash[i];
     }
 
+
+    // Prevents attempted parsing of extensions when the HMAC fails.
+    if(valid)
+    {
+        // Parses the Extensions
+        DataExtension ext;
+        int offset = 0;
+        for(int i = 0; i < fp.extensions; i++)
+        {
+            len = *(int16_t*)&out[offset];
+            offset += sizeof(int16_t);
+            ext.parse(out, offset);
+            extensions.push_back(ext);
+            offset += len;
+        }   
+    }
+    
 
     // Cleanup
     delete mac;
